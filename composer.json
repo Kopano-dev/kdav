@@ -1,0 +1,26 @@
+{
+    "name"                  : "KopanoDAV",
+    "description"           : "This is Kopano DAV implementation",
+    "require": {
+        "sabre/dav"         : "~3.2.0"
+    },
+    "license"               : "AGPL v3",
+    "authors": [
+        {
+            "name"          : "Manfred Kutas",
+            "email"         : "manfred@z-push.org",
+            "role"          : "Developer"
+        },
+        {
+            "name"          : "Sebastian Kummer",
+            "email"         : "sebastian@z-push.org",
+            "role"          : "Developer"
+        }
+    ],
+    "autoload" : {
+        "psr-0" : {
+            "Kopano\\DAV\\" : "lib/"
+        }
+    },
+    "minimum-stability"     : "stable"
+}
