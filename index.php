@@ -14,6 +14,10 @@
 * it under the terms of the GNU Affero General Public License, version 3,
 * as published by the Free Software Foundation.
 *
+* This software uses SabreDAV, an open source software distributed
+* under three-clause BSD-license. Please see <http://sabre.io/dav/>
+* for more information about SabreDAV.
+*
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
