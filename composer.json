@@ -18,9 +18,10 @@
         }
     ],
     "autoload" : {
-        "psr-0" : {
+        "psr-4" : {
             "Kopano\\DAV\\" : "lib/"
-        }
+        },
+        "files" : ["config.php", "version.php"]
     },
     "minimum-stability"     : "stable"
 }

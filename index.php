@@ -31,3 +31,33 @@
 
 namespace Kopano\DAV;
 
+print("KopanoDAV <br />");
+
+// require composer auto-loader
+require __DIR__ . '/vendor/autoload.php';
+
+printf("Version : %s <br />", KDAV_VERSION);
+
+$kdavBackend = new KopanoDavBackend();
+
+$authBackend = new AuthBasicBackend($kdavBackend);
+$principalBackend = new PrincipalsBackend($kdavBackend);
+$kCarddavBackend   = new KopanoCardDavBackend($kdavBackend);
+
+// Setting up the directory tree
+$nodes = array(
+    new \Sabre\DAVACL\PrincipalCollection($principalBackend),
+    new \Sabre\CardDAV\AddressBookRoot($principalBackend, $kCarddavBackend)
+);
+
+$server = new \Sabre\DAV\Server($nodes);
+$server->setBaseUri(DAV_ROOT_URI);
+
+$server->addPlugin(new \Sabre\DAV\Auth\Plugin($authBackend, SABRE_AUTH_REALM));
+$server->addPlugin(new \Sabre\CardDAV\Plugin());
+$server->addPlugin(new \Sabre\DAVACL\Plugin());
+
+$server->addPlugin(new \Sabre\DAV\Browser\Plugin(false));
+
+$server->exec();
+print("Done <br />");
