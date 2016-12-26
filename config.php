@@ -53,4 +53,4 @@ define('MAPI_SERVER', 'default:');
 define ('SABRE_AUTH_REALM', 'Kopano DAV');
 
 // Location of the SabreDAV server.
-define ('DAV_ROOT_URI', '/kdav');
+define ('DAV_ROOT_URI', '/');
