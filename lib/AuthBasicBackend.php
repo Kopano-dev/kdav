@@ -41,7 +41,7 @@ class AuthBasicBackend extends \Sabre\DAV\Auth\Backend\AbstractBasic {
      * @return void
      */
     public function __construct (KopanoDavBackend $kDavBackend) {
-        $this->kopanoDav = $kDavBackend;
+        $this->kDavBackend = $kDavBackend;
     }
 
     /**
@@ -57,6 +57,6 @@ class AuthBasicBackend extends \Sabre\DAV\Auth\Backend\AbstractBasic {
      * @return bool
      */
     protected function validateUserPass ($username, $password) {
-        return $this->kopanoDav->Logon($username, $password);
+        return $this->kDavBackend->Logon($username, $password);
     }
 }

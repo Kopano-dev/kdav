@@ -69,8 +69,8 @@ class PrincipalsBackend implements \Sabre\DAVACL\PrincipalBackend\BackendInterfa
      */
     public function getPrincipalByPath($path) {
         return array(
-                    'id'                                        => $_SERVER['PHP_AUTH_USER'],
-                    'uri'                                       => 'principals/' . $_SERVER['PHP_AUTH_USER'],
+                    'id'                                        => $this->kdavBackend->GetUser(),
+                    'uri'                                       => 'principals/' . $this->kdavBackend->GetUser(),
                     // TODO get Displayname and email address from GAB
                     '{DAV:}displayname'                         => 'Hardcoded Testuser',
                     '{http://sabredav.org/ns}email-address'     => 'kdavtest@kopano.io',

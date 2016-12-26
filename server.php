@@ -37,6 +37,7 @@ require __DIR__ . '/vendor/autoload.php';
 $kdavBackend = new KopanoDavBackend();
 
 $authBackend = new AuthBasicBackend($kdavBackend);
+$authBackend->setRealm(SABRE_AUTH_REALM);
 $principalBackend = new PrincipalsBackend($kdavBackend);
 $kCarddavBackend   = new KopanoCardDavBackend($kdavBackend);
 $kCaldavBackend   = new KopanoCalDavBackend($kdavBackend);
@@ -52,8 +53,12 @@ $server = new \Sabre\DAV\Server($nodes);
 $server->setBaseUri(DAV_ROOT_URI);
 
 $server->addPlugin(new \Sabre\DAV\Auth\Plugin($authBackend, SABRE_AUTH_REALM));
+
+$aclPlugin = new \Sabre\DAVACL\Plugin();
+$aclPlugin->allowUnauthenticatedAccess = false;
+$server->addPlugin($aclPlugin);
+
 $server->addPlugin(new \Sabre\CardDAV\Plugin());
-$server->addPlugin(new \Sabre\DAVACL\Plugin());
 
 // TODO: do we need $caldavPlugin for anything?
 $caldavPlugin = new \Sabre\CalDAV\Plugin();

@@ -36,6 +36,7 @@ require_once("/usr/share/php/mapi/mapitags.php");
 class KopanoDavBackend {
     protected $session;
     protected $store;
+    protected $user;
 
     public function __construct() {
 
@@ -50,7 +51,7 @@ class KopanoDavBackend {
      * @access public
      * @return boolean
      */
-    public function Logon ($user, $pass) {
+    public function Logon($user, $pass) {
         if (Utils::CheckMapiExtVersion('7.2.0')) {
             $kdavVersion = 'KopanoDav' . @constant('KDAV_VERSION');
             $userAgent = "unknown"; // TODO get user agent
@@ -62,9 +63,13 @@ class KopanoDavBackend {
         // FIXME error handling if logon fails
 
         $this->store = GetDefaultStore($this->session);
+        $this->user = $user;
         return true;
     }
 
+    public function GetUser() {
+        return $this->user;
+    }
     public function GetFolders($principalUri, $class) {
         $folders = array();
 

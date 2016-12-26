@@ -3,7 +3,7 @@
 * File      :   KopanoCalDavBackend.php
 * Project   :   KopanoDAV
 * Descr     :   Kopano CalDAV backend class which
-*               handles caldendar related activities.
+*               handles calendar related activities.
 *
 * Created   :   26.12.2016
 *
@@ -225,7 +225,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
     }
 
     /**
-     * Updates an existing calendarobject, based on it's uri.
+     * Updates an existing calendarobject, based on its uri.
      *
      * The object uri is only the basename, or filename and not a full path.
      *

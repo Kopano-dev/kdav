@@ -30,7 +30,7 @@ It's recommend to install composer locally into the main kDav directory. Then ju
 All configs are handled in the `config.php` file.
 Adjust `MAPI_SERVER` to connect to your Kopano instance.
 The `DAV_ROOT_URI` parameter must match your webserver configuration,
-so that it points directly to the `index.php` file.
+so that it points directly to the `server.php` file.
 
 This is the simplest way to setup, running at port 8843:
 
@@ -38,25 +38,31 @@ This is the simplest way to setup, running at port 8843:
     <VirtualHost *:8843>
         DocumentRoot /your-kdav-working-directory/kdav
         ServerName develop.local
-        
+
         <Directory /your-kdav-working-directory/kdav>
-            DirectoryIndex index.php
-            RewriteEngine On
-            RewriteBase /kdav
-
-            # Rewrite accesses without direct reference to index
-            RewriteCond %{REQUEST_FILENAME} !-f
-            RewriteCond %{REQUEST_FILENAME} !-d
-            RewriteRule ^.*$ /index.php
-
             Require all granted
-        </Directory> 
-        <Directory /your-kdav-working-directory/kdav/lib>
-            Deny from all
         </Directory>
-        <Directory /your-kdav-working-directory/kdav/vendor>
-            Deny from all
-        </Directory>
+
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+        RewriteEngine On
+        # This makes every request go to server.php
+        RewriteRule ^/(.*)$ /server.php [L]
+
+        # Output buffering needs to be off, to prevent high memory usage
+        php_flag output_buffering off
+
+        # This is also to prevent high memory usage
+        php_flag always_populate_raw_post_data off
+
+        # This is almost a given, but magic quotes is *still* on on some
+        # linux distributions
+        php_flag magic_quotes_gpc off
+
+        # SabreDAV is not compatible with mbstring function overloading
+        php_flag mbstring.func_overload off
+
     </VirtualHost>
 
 SSL is strongly recommended if you use real passwords.
