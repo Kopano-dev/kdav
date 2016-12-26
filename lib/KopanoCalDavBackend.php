@@ -2,8 +2,8 @@
 /***********************************************
 * File      :   KopanoCalDavBackend.php
 * Project   :   KopanoDAV
-* Descr     :   Kopano Card DAV backend class which
-*               handles contact related activities.
+* Descr     :   Kopano CalDAV backend class which
+*               handles caldendar related activities.
 *
 * Created   :   26.12.2016
 *
@@ -190,6 +190,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
                 'id'            => $objectId,
                 'uri'           => $objectUri,
                 'etag'          => '"' . $props[PR_LAST_MODIFICATION_TIME] . '"',
+                'lastmodified'  => $props[PR_LAST_MODIFICATION_TIME],
                 'calendarid'    => $objectId,
                 'size'          => strlen($ics),
                 'calendardata'  => $ics,
