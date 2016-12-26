@@ -54,7 +54,9 @@ class PrincipalsBackend implements \Sabre\DAVACL\PrincipalBackend\BackendInterfa
      * @return array
      */
     public function getPrincipalsByPrefix($prefixPath) {
-
+        $principals = array();
+        $principals[] = $this->getPrincipalByPath($prefixPath);
+        return $principals;
     }
 
     /**
@@ -66,7 +68,14 @@ class PrincipalsBackend implements \Sabre\DAVACL\PrincipalBackend\BackendInterfa
      * @return array
      */
     public function getPrincipalByPath($path) {
-
+        return array(
+                    'id'                                        => $_SERVER['PHP_AUTH_USER'],
+                    'uri'                                       => 'principals/' . $_SERVER['PHP_AUTH_USER'],
+                    // TODO get Displayname and email address from GAB
+                    '{DAV:}displayname'                         => 'Hardcoded Testuser',
+                    '{http://sabredav.org/ns}email-address'     => 'kdavtest@kopano.io',
+                    // TODO 'vcardurl' shoudl be set, see here: http://sabre.io/dav/principals/
+            );
     }
 
     /**
@@ -150,7 +159,7 @@ class PrincipalsBackend implements \Sabre\DAVACL\PrincipalBackend\BackendInterfa
      * @return array
      */
     public function getGroupMemberSet($principal) {
-
+        return array();
     }
 
     /**
@@ -160,7 +169,7 @@ class PrincipalsBackend implements \Sabre\DAVACL\PrincipalBackend\BackendInterfa
      * @return array
      */
     public function getGroupMembership($principal) {
-
+        return array();
     }
 
     /**

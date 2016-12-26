@@ -35,7 +35,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
     protected $kDavBackend;
 
     public function __construct(KopanoDavBackend $kDavBackend) {
-        $this->kopanoDav = $kDavBackend;
+        $this->kDavBackend = $kDavBackend;
     }
 
     /**
@@ -56,7 +56,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      * @return array
      */
     public function getAddressBooksForUser($principalUri) {
-
+        return $this->kDavBackend->GetFolders($principalUri, 'IPF.Contact');
     }
 
     /**

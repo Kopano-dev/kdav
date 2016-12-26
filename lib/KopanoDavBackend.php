@@ -27,11 +27,15 @@
 *
 * Consult LICENSE file for details
 ************************************************/
-
 namespace Kopano\DAV;
+
+require_once("/usr/share/php/mapi/mapi.util.php");
+require_once("/usr/share/php/mapi/mapidefs.php");
+require_once("/usr/share/php/mapi/mapitags.php");
 
 class KopanoDavBackend {
     protected $session;
+    protected $store;
 
     public function __construct() {
 
@@ -56,6 +60,57 @@ class KopanoDavBackend {
             $this->session = @mapi_logon_zarafa($user, $pass, MAPI_SERVER, null, null, 0);
         }
         // FIXME error handling if logon fails
+
+        $this->store = GetDefaultStore($this->session);
         return true;
     }
+
+    public function GetFolders($principalUri, $class) {
+        $folders = array();
+
+        // TODO limit the output to subfolders of the principalUri?
+
+        $rootfolder = mapi_msgstore_openentry($this->store);
+        $rootfolderprops = mapi_getprops($rootfolder, array(PR_SOURCE_KEY));
+
+        $hierarchy =  mapi_folder_gethierarchytable($rootfolder, CONVENIENT_DEPTH);
+        // TODO also filter hidden folders
+        $restriction = array(RES_PROPERTY, array(RELOP => RELOP_EQ, ULPROPTAG => PR_CONTAINER_CLASS, VALUE => $class));
+
+        mapi_table_restrict($hierarchy, $restriction);
+
+        // TODO how to handle hierarchies?
+        $rows = mapi_table_queryallrows($hierarchy, array(PR_DISPLAY_NAME, PR_ENTRYID, PR_SOURCE_KEY, PR_PARENT_SOURCE_KEY, PR_CONTAINER_CLASS));
+
+        foreach ($rows as $row) {
+            $folders[] = [
+                'id'           => bin2hex($row[PR_ENTRYID]),
+                'uri'          => $row[PR_DISPLAY_NAME],
+                'principaluri' => $principalUri,
+            ];
+        }
+        return $folders;
+    }
+
+    public function GetMapiFolder($entryid) {
+        return mapi_msgstore_openentry($this->store, hex2bin($entryid));
+    }
+
+    public function GetAddressBook() {
+        // TODO could be a singleton
+        return mapi_openaddressbook($this->session);
+    }
+
+    public function GetStore() {
+        return $this->store;
+    }
+
+    public function GetSession() {
+        return $this->session;
+    }
+
+    public function IsOurId($id) {
+        return !preg_match("/[^A-Fa-f0-9]/", $id);
+    }
+
 }
