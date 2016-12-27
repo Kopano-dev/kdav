@@ -2,7 +2,8 @@
     "name"                  : "KopanoDAV",
     "description"           : "This is Kopano DAV implementation",
     "require": {
-        "sabre/dav"         : "~3.2.0"
+        "sabre/dav"         : "~3.2.0",
+        "apache/log4php"    : "~2.3.0"
     },
     "license"               : "AGPL v3",
     "authors": [

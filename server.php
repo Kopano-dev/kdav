@@ -34,6 +34,13 @@ namespace Kopano\DAV;
 // require composer auto-loader
 require __DIR__ . '/vendor/autoload.php';
 
+// Configure logger
+\Logger::configure(__DIR__ . '/log4php.xml');
+// Create logger for this server:
+$logger = \Logger::getLogger('kDAV');
+$logger->info(sprintf('Initializing KDAV version %s', KDAV_VERSION));
+$logger->info(sprintf('SabreDAV version %s',\Sabre\DAV\Version::VERSION));
+
 $kdavBackend = new KopanoDavBackend();
 
 $authBackend = new AuthBasicBackend($kdavBackend);

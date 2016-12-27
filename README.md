@@ -27,7 +27,7 @@ It's recommend to install composer locally into the main kDAV directory. Then ju
 # ./composer.phar install
 ```
 
-### Configuration
+### kDAV configuration
 
 All configs are handled in the `config.php` file.
 Adjust `MAPI_SERVER` to connect to your Kopano instance.
@@ -67,6 +67,9 @@ This is the simplest way to setup, running at port 8843:
 
 </VirtualHost>
 ```
+
+### log4php configuration
+TODO
 
 SSL is strongly recommended if you use real passwords.
 
