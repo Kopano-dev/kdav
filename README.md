@@ -37,8 +37,7 @@ so that it points directly to the `server.php` file.
 This is the simplest way to setup, running at port 8843:
 
 ```
-Listen 8843
-<VirtualHost *:8843>
+<VirtualHost *:80>
     DocumentRoot /your-kdav-working-directory/kdav
     ServerName develop.local
 
@@ -76,7 +75,7 @@ SSL is strongly recommended if you use real passwords.
 As first step, point your webbrowser to:
 
 ```
-http://develop.local:8443/
+http://develop.local/
 ```
     
 Login with the username + password of a valid Kopano user.
@@ -86,7 +85,7 @@ If you don't get the Sabre/Dav overview, check your webserver error logfiles.
 In your CalDav client, set the server URL to
 
 ```
-http://develop.local:8443/calendars/<user>/Calendar/
+http://develop.local/calendars/<user>/Calendar/
 ```
 
 The IP address can of course also be used.
@@ -94,4 +93,3 @@ The IP address can of course also be used.
 ## Reporting and Development
 
 Atm developement is done on z-hub.io in the KDAV project.
-    
