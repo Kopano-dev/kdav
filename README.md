@@ -68,10 +68,36 @@ This is the simplest way to setup, running at port 8843:
 </VirtualHost>
 ```
 
-### log4php configuration
-TODO
-
 SSL is strongly recommended if you use real passwords.
+
+### log4php configuration
+kDAV uses Apache's log4php for logging. The configuration file is `log4php.xml`
+located in the root folder.
+The default log location is `/var/log/kdav/kdav.log`.
+It is required to create the log directory first:
+
+```
+mkdir -p /var/log/kdav
+```
+
+and grant permissions for the webserver user to write to that directory e.g.
+
+```
+chown -R www-data. /var/log/kdav
+```
+
+The default log4php configuration doesn't rotate the log file, so it might be a
+good idea to configure logrotate utility for kdav.log e.g by creating
+```/etc/logrotate.d/kdav``` with the following content:
+
+```
+/var/log/kdav/*.log {
+    size 1k
+    create www-data www-data
+    compress
+    rotate 4
+}
+```
 
 ## Access
 
