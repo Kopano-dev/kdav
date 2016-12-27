@@ -1,6 +1,6 @@
-# kDAV - Kopano CalDav & CardDav
+# kDAV - Kopano CalDAV & CardDAV
 
-Implements CalDav and CardDav support for Kopano 8.2 or newer.
+Implements CalDAV and CardDAV support for Kopano 8.3 or newer.
 
 As DAV server [SabreDAV](http://http://sabre.io/dav) is used.
 
@@ -21,7 +21,7 @@ You should have got a checkout/clone of the repository.
 The main dependencies are installed via Composer, to do that, first get composer itself.
 Installation instructions can be found 
 [here](https://getcomposer.org/doc/00-intro.md#installation-linux-unix-osx).
-It's recommend to install composer locally into the main kDav directory. Then just do
+It's recommend to install composer locally into the main kDAV directory. Then just do
 
 ```
 # ./composer.phar install
@@ -82,7 +82,7 @@ Login with the username + password of a valid Kopano user.
 
 If you don't get the Sabre/Dav overview, check your webserver error logfiles.
 
-In your CalDav client, set the server URL to
+In your CalDAV client, set the server URL to
 
 ```
 http://develop.local/calendars/<user>/Calendar/
@@ -92,4 +92,4 @@ The IP address can of course also be used.
 
 ## Reporting and Development
 
-Atm developement is done on z-hub.io in the KDAV project.
+Atm development is done on z-hub.io in the KDAV project.
