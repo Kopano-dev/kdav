@@ -1,6 +1,6 @@
 <?php
 /***********************************************
-* File      :   LogUtil.php
+* File      :   KLogUtil.php
 * Project   :   KopanoDAV
 * Descr     :   Utility class for logging.
 *
@@ -32,7 +32,7 @@ namespace Kopano\DAV;
 class KLogUtil {
 
     /**
-     * Logging Utilility class
+     * Logging Utility class
      *
      * @param Logger $logger
      * @return void
@@ -140,8 +140,15 @@ class KLogUtil {
             foreach ($response->getHeaders() as $key => $value) {
                 $output .= $key . ": ". implode(',', $value) . "\n";
             }
-            $output .= "\n" . ob_get_contents();
-            $this->logger->debug("OUTPUT:\n". $output);
+            $outputBody = ob_get_contents();
+            if (stripos($outputBody, '<?xml') === 0) {
+                $dom = new \DOMDocument('1.0', 'utf-8');
+                $dom->preserveWhiteSpace = false;
+                $dom->formatOutput = true;
+                $dom->loadXML($outputBody);
+                $outputBody = $dom->saveXML();
+            }
+            $this->logger->debug("OUTPUT:\n". $output . "\n" . $outputBody);
 
             ob_end_flush();
         }
