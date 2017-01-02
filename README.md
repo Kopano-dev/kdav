@@ -134,8 +134,11 @@ ln -s vendor/phpunit/phpunit/phpunit phpunit
 ```
 
 In order to run all the test execute:
-
-```phpunit tests```
+```
+phpunit tests
+```
 
 In order to run a specific test pass a path to a specific class as parameter, e.g.:
-```phpunit tests\KopanoCardDavBackendTest```
+```
+phpunit tests\KopanoCardDavBackendTest
+```
