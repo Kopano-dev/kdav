@@ -50,7 +50,10 @@
 define('MAPI_SERVER', 'default:');
 
 // Authentication realm
-define ('SABRE_AUTH_REALM', 'Kopano DAV');
+define('SABRE_AUTH_REALM', 'Kopano DAV');
 
 // Location of the SabreDAV server.
-define ('DAV_ROOT_URI', '/');
+define('DAV_ROOT_URI', '/');
+
+// Developer mode: verifies log messages
+define('DEVELOPER_MODE', true);
