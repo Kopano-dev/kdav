@@ -106,12 +106,12 @@ class KLogger {
         $outArgs = [];
         foreach ($args as $arg) {
             if (is_array($arg)) {
-                $args[] = print_r($arg, true);
+                $outArgs[] = print_r($arg, true);
             }
-            $args[] = $arg;
+            $outArgs[] = $arg;
         }
         // call sprintf() with the arguments
-        $message = call_user_func_array('sprintf', $args);
+        $message = call_user_func_array('sprintf', $outArgs);
         // prepend class+method and log the message
         $this->logger->log($level, $this->getCaller(2) . $message . $suffix, null);
     }
