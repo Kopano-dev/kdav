@@ -1,6 +1,6 @@
 <?php
 /***********************************************
-* File      :   index.php
+* File      :   server.php
 * Project   :   KopanoDAV
 * Descr     :   This is the entry point
 *               through which all requests
@@ -34,12 +34,9 @@ namespace Kopano\DAV;
 // require composer auto-loader
 require __DIR__ . '/vendor/autoload.php';
 
-// Configure logger
-\Logger::configure(__DIR__ . '/log4php.xml');
-// Create logger for this server:
-$logger = \Logger::getLogger('main');
-
-// initialize own logger utililty
+// Configure & create main logger
+KLogger::configure(__DIR__ . '/log4php.xml');
+$logger = KLogger::GetLogger('main');
 $logUtil = new KLogUtil($logger);
 
 // don't log any Sabre asset requests (images etc)
@@ -49,9 +46,9 @@ if (isset($_REQUEST['sabreAction']) && $_REQUEST['sabreAction'] == 'asset') {
 
 // log the start data
 $logger->debug('------------------ Start');
-$logger->debug(sprintf('%s %s', $_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']));
-$logger->debug(sprintf('KDAV version %s', KDAV_VERSION));
-$logger->debug(sprintf('SabreDAV version %s',\Sabre\DAV\Version::VERSION));
+$logger->debug('%s %s', $_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
+$logger->debug('KDAV version %s', KDAV_VERSION);
+$logger->debug('SabreDAV version %s',\Sabre\DAV\Version::VERSION);
 
 
 $kdavBackend = new KopanoDavBackend();
@@ -99,7 +96,7 @@ $server->exec();
 // Log outgoing data
 $logUtil->LogOutgoing($server->httpResponse);
 
-$logger->debug(sprintf("httpcode='%s' memory='%s/%s' time='%ss'",
+$logger->debug("httpcode='%s' memory='%s/%s' time='%ss'",
                 http_response_code(), Utils::FormatBytes(memory_get_peak_usage(false)), Utils::FormatBytes(memory_get_peak_usage(true)),
-                number_format(microtime(true) - $_SERVER["REQUEST_TIME_FLOAT"], 2)));
+                number_format(microtime(true) - $_SERVER["REQUEST_TIME_FLOAT"], 2));
 $logger->debug('------------------ End');

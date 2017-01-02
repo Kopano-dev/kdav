@@ -31,11 +31,12 @@
 namespace Kopano\DAV;
 
 class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
-
+    private $logger;
     protected $kDavBackend;
 
     public function __construct(KopanoDavBackend $kDavBackend) {
         $this->kDavBackend = $kDavBackend;
+        $this->logger = KLogger::GetLogger('card');
     }
 
     /**
@@ -56,6 +57,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      * @return array
      */
     public function getAddressBooksForUser($principalUri) {
+        $this->logger->trace("principalUri: %s", $principalUri);
         return $this->kDavBackend->GetFolders($principalUri, 'IPF.Contact');
     }
 
@@ -76,7 +78,8 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      * @return void
      */
     public function updateAddressBook($addressBookId, \Sabre\DAV\PropPatch $propPatch) {
-
+        // TODO is our logger able to log this object? It probably needs to be adapted.
+        $this->logger->trace("addressBookId: %s - proppatch: %s", $addressBookId, $propPatch);
     }
 
     /**
@@ -91,7 +94,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      * @return mixed
      */
     public function createAddressBook($principalUri, $url, array $properties) {
-
+        $this->logger->trace("principalUri: %s - url: %s - properties: %s", $principalUri, $url, $properties);
     }
 
     /**
@@ -101,7 +104,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      * @return void
      */
     public function deleteAddressBook($addressBookId) {
-
+        $this->logger->trace("addressBookId: %s", $addressBookId);
     }
 
     /**
@@ -124,7 +127,8 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      * @return array
      */
     public function getCards($addressbookId) {
-
+        $this->logger->trace("addressBookId: %s", $addressBookId);
+        return array();
     }
 
     /**
@@ -140,7 +144,8 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      * @return array
      */
     public function getCard($addressBookId, $cardUri) {
-
+        $this->logger->trace("addressBookId: %s - cardUri: %s", $addressBookId, $cardUri);
+        return array();
     }
 
     /**
@@ -156,7 +161,8 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      * @return array
      */
     public function getMultipleCards($addressBookId, array $uris) {
-
+        $this->logger->trace("addressBookId: %s - uris: %s", $addressBookId, $uris);
+        return array();
     }
 
     /**
@@ -185,7 +191,8 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      * @return string|null
      */
     public function createCard($addressBookId, $cardUri, $cardData) {
-
+        $this->logger->trace("addressBookId: %s - cardUri: %s - cardData: %s", $addressBookId, $cardUri, $cardData);
+        return null;
     }
 
     /**
@@ -214,7 +221,8 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      * @return string|null
      */
     public function updateCard($addressBookId, $cardUri, $cardData) {
-
+        $this->logger->trace("addressBookId: %s - cardUri: %s - cardData: %s", $addressBookId, $cardUri, $cardData);
+        return null;
     }
 
     /**
@@ -225,6 +233,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      * @return bool
      */
     public function deleteCard($addressBookId, $cardUri) {
-
+        $this->logger->trace("addressBookId: %s - cardUri: %s", $addressBookId, $cardUri);
+        return false;
     }
 }

@@ -42,11 +42,12 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      *
      */
 
-
+    private $logger;
     protected $kDavBackend;
 
     public function __construct(KopanoDavBackend $kDavBackend) {
         $this->kDavBackend = $kDavBackend;
+        $this->logger = KLogger::GetLogger('cal');
     }
 
     /**
@@ -74,6 +75,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @return array
      */
     function getCalendarsForUser($principalUri) {
+        $this->logger->trace("principalUri: %s", $principalUri);
         return $this->kDavBackend->GetFolders($principalUri, 'IPF.Appointment');
     }
 
@@ -89,6 +91,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @return string
      */
     function createCalendar($principalUri, $calendarUri, array $properties) {
+        $this->logger->trace("principalUri: %s - calendarUri: %s - properties: %s", $principalUri, $calendarUri, $properties);
        // TODO implement, returns id
     }
 
@@ -99,6 +102,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @return void
      */
     function deleteCalendar($calendarId) {
+        $this->logger->trace("calendarId: %s", $calendarId);
         // TODO implement
     }
 
@@ -134,6 +138,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @return array
      */
     function getCalendarObjects($calendarId) {
+        $this->logger->trace("calendarId: %s", $calendarId);
         // TODO: retrival (search & opening) should be done in KopanoDavBackend and be used in CardDav as well
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
 
@@ -144,6 +149,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
         foreach($rows as $row) {
             $result[] = $this->getCalendarObject($calendarId, bin2hex($row[PR_ENTRYID]).'.ics');
         }
+        $this->logger->trace("found %d objects", count($result));
         return $result;
 
     }
@@ -165,6 +171,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @return array|null
      */
     function getCalendarObject($calendarId, $objectUri) {
+        $this->logger->trace("calendarId: %s - objectUri: %s", $calendarId, $objectUri);
         // TODO Check if retrival (search & opening) could be done in KopanoDavBackend and be used in CardDav as well
 
         // cut off '.ics'
@@ -195,6 +202,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
                 'size'          => strlen($ics),
                 'calendardata'  => $ics,
         ];
+        $this->logger->trace("returned data id: %s - size: %d - etag: %s", $r['id'], $r['size'], $r['etag']);
         return $r;
     }
 
@@ -217,6 +225,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @return string|null
      */
     function createCalendarObject($calendarId, $objectUri, $calendarData) {
+        $this->logger->trace("calendarId: %s - objectUri: %s - calendarData: %s", $calendarId, $objectUri, $calendarData);
         // TODO create & save should be done in KopanoDavBackend, the actually setting of data could be done here - use same functionality as in updateCalendarObject
         error_log("createCalendarObject($calendarId, $objectUri, $calendarData)");
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
@@ -243,6 +252,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @return string|null
      */
     function updateCalendarObject($calendarId, $objectUri, $calendarData) {
+        $this->logger->trace("calendarId: %s - objectUri: %s - calendarData: %s", $calendarId, $objectUri, $calendarData);
         // TODO open & save should be implemneted in KopanoDavBackend, the actually setting of data should be done here - use same functionality as in createCalendarObject
         //$folder = $this->kDavBackend->GetMapiFolder($calendarId);
         // cut off '.ics'
@@ -253,6 +263,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
     }
 
     private function setData($msg, $ics) {
+        $this->logger->trace("msg: %s - ics: %s", $msg, $ics);
         // this should be cached or moved to kDavBackend
         $store = $this->kDavBackend->GetStore();
         $session = $this->kDavBackend->GetSession();
@@ -277,6 +288,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @return void
      */
     function deleteCalendarObject($calendarId, $objectUri) {
+        $this->logger->trace("calendarId: %s - objectUri: %s", $calendarId, $objectUri);
         // TODO should be implemented in KopanoDavBackend and be used also for CardDav
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
         $objectId = substr($objectUri, 0, -4);

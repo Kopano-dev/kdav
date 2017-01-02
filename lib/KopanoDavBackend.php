@@ -34,12 +34,13 @@ require_once("/usr/share/php/mapi/mapidefs.php");
 require_once("/usr/share/php/mapi/mapitags.php");
 
 class KopanoDavBackend {
+    private $logger;
     protected $session;
     protected $store;
     protected $user;
 
     public function __construct() {
-
+        $this->logger = KLogger::GetLogger('dav');
     }
 
     /**
@@ -52,6 +53,8 @@ class KopanoDavBackend {
      * @return boolean
      */
     public function Logon($user, $pass) {
+        $this->logger->trace('%s / password', $user);
+
         if (Utils::CheckMapiExtVersion('7.2.0')) {
             $kdavVersion = 'KopanoDav' . @constant('KDAV_VERSION');
             $userAgent = "unknown"; // TODO get user agent
@@ -64,13 +67,16 @@ class KopanoDavBackend {
 
         $this->store = GetDefaultStore($this->session);
         $this->user = $user;
+        $this->logger->debug("Auth: OK - user %s - store %s - session %s", $this->user, $this->store, $this->session);
         return true;
     }
 
     public function GetUser() {
+        $this->logger->trace($this->user);
         return $this->user;
     }
     public function GetFolders($principalUri, $class) {
+        $this->logger->trace("principal '%s', class '%s'", $principalUri, $class);
         $folders = array();
 
         // TODO limit the output to subfolders of the principalUri?
@@ -94,6 +100,7 @@ class KopanoDavBackend {
                 'principaluri' => $principalUri,
             ];
         }
+        $this->logger->trace('found %d folders', count($folders));
         return $folders;
     }
 
