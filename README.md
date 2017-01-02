@@ -122,3 +122,23 @@ The IP address can of course also be used.
 ## Reporting and Development
 
 Atm development is done on z-hub.io in the KDAV project.
+
+### PHPUnit tests
+
+kDAV uses PHPUnit for unit tests. It's installed by composer. The executable
+binary is ```vendor/phpunit/phpunit/phpunit```, so creating a symlink in
+the project's folder makes it easier:
+
+```
+ln -s vendor/phpunit/phpunit/phpunit phpunit
+```
+
+In order to run all the test execute:
+```
+phpunit tests
+```
+
+In order to run a specific test pass a path to a specific class as parameter, e.g.:
+```
+phpunit tests\KopanoCardDavBackendTest
+```

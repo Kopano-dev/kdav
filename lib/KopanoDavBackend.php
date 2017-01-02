@@ -29,10 +29,6 @@
 ************************************************/
 namespace Kopano\DAV;
 
-require_once("/usr/share/php/mapi/mapi.util.php");
-require_once("/usr/share/php/mapi/mapidefs.php");
-require_once("/usr/share/php/mapi/mapitags.php");
-
 class KopanoDavBackend {
     private $logger;
     protected $session;
@@ -75,6 +71,7 @@ class KopanoDavBackend {
         $this->logger->trace($this->user);
         return $this->user;
     }
+
     public function GetFolders($principalUri, $class) {
         $this->logger->trace("principal '%s', class '%s'", $principalUri, $class);
         $folders = array();
