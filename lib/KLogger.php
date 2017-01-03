@@ -44,6 +44,13 @@ class KLogger {
     protected $logger;
 
     /**
+     * Constructor
+     */
+    public function __construct($name) {
+        $this->logger = \Logger::getLogger($name);
+    }
+
+    /**
      * Configures log4php.
      *
      * This method needs to be called before the first logging event has
@@ -69,10 +76,10 @@ class KLogger {
      * @return Logger
      */
     public static function GetLogger($class) {
-        if (!isset($listOfLoggers[$class])) {
-            $listOfLoggers[$class] = new KLogger(static::GetClassnameOnly($class));
+        if (!isset(static::$listOfLoggers[$class])) {
+            static::$listOfLoggers[$class] = new KLogger(static::GetClassnameOnly($class));
         }
-        return $listOfLoggers[$class];
+        return static::$listOfLoggers[$class];
     }
 
     /**
@@ -88,12 +95,6 @@ class KLogger {
         return substr(strrchr($namespaceWithClass, '\\'), 1);
     }
 
-    /**
-     * Constructor
-     */
-    public function __construct($name) {
-        $this->logger = \Logger::getLogger($name);
-    }
 
     /**
      * Runs the arguments through sprintf() and sends it to the logger.
