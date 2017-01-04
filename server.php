@@ -37,7 +37,6 @@ require __DIR__ . '/vendor/autoload.php';
 // Configure & create main logger
 KLogger::configure(__DIR__ . '/log4php.xml');
 $logger = KLogger::GetLogger('main');
-$logUtil = new KLogUtil($logger);
 
 // don't log any Sabre asset requests (images etc)
 if (isset($_REQUEST['sabreAction']) && $_REQUEST['sabreAction'] == 'asset') {
@@ -68,7 +67,7 @@ $nodes = array(
 // initialize the server
 $server = new \Sabre\DAV\Server($nodes);
 $server->setBaseUri(DAV_ROOT_URI);
-$server->setLogger($logUtil->GetPSRLoggerInterface());
+$server->setLogger(new KPSR3Logger($logger));
 
 $authPlugin = new \Sabre\DAV\Auth\Plugin($authBackend, SABRE_AUTH_REALM);
 $server->addPlugin($authPlugin);

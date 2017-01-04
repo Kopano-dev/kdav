@@ -1,8 +1,9 @@
 <?php
 /***********************************************
-* File      :   KLogUtil.php
+* File      :   KPSR3Logger.php
 * Project   :   KopanoDAV
-* Descr     :   Utility class for logging.
+* Descr     :   Wrapper to get a PSR-3 compatible
+*               interface out of an php4log logger.
 *
 * Created   :   27.12.2016
 *
@@ -29,35 +30,11 @@
 
 namespace Kopano\DAV;
 
-class KLogUtil {
-
-    /**
-     * Logging Utility class
-     *
-     * @param Logger $logger
-     * @return void
-     */
-    public function __construct($logger) {
-        $this->logger = $logger;
-    }
-
-    /**
-     * Returns a PSR-3 compatible logger.
-     *
-     * @access public
-     * @return \Kopano\DAV\PSR3WrapperLogger
-     */
-    public function GetPSRLoggerInterface() {
-        // TODO when using PHP 7 this could become an anonymous class
-        return new PSR3LoggerWrapper($this->logger);
-    }
-}
-
 
 /**
  * Wrapper to get a PSR-3 compatible interface out of an php4log logger.
  */
-class PSR3LoggerWrapper implements \Psr\Log\LoggerInterface {
+class KPSR3Logger implements \Psr\Log\LoggerInterface {
     /**
      * log4php
      *
