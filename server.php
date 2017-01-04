@@ -77,7 +77,7 @@ $server->addPlugin($authPlugin);
 $server->httpResponse->addHeader('X-KDAV-Version', KDAV_VERSION);
 
 // log the incoming request (only if authenticated)
-$logUtil->LogIncoming($server->httpRequest);
+$logger->LogIncoming($server->httpRequest);
 
 $aclPlugin = new \Sabre\DAVACL\Plugin();
 $aclPlugin->allowUnauthenticatedAccess = false;
@@ -94,7 +94,7 @@ $server->addPlugin(new \Sabre\DAV\Browser\Plugin(false));
 $server->exec();
 
 // Log outgoing data
-$logUtil->LogOutgoing($server->httpResponse);
+$logger->LogOutgoing($server->httpResponse);
 
 $logger->debug("httpcode='%s' memory='%s/%s' time='%ss'",
                 http_response_code(), Utils::FormatBytes(memory_get_peak_usage(false)), Utils::FormatBytes(memory_get_peak_usage(true)),

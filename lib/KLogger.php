@@ -105,6 +105,69 @@ class KLogger {
         return substr(strrchr($namespaceWithClass, '\\'), 1);
     }
 
+    /**
+     * Logs the incoming data (headers + body) to debug.
+     *
+     * @param \Sabre\HTTP\RequestInterface $request
+     *
+     * @access public
+     * @return void
+     */
+    public function LogIncoming(\Sabre\HTTP\RequestInterface $request) {
+        // only do any of this is we are looking for debug messages
+        if ($this->logger->isDebugEnabled()) {
+            $inputHeader = $request->getMethod() . ' ' . $request->getUrl() . ' HTTP/' . $request->getHTTPVersion() . "\r\n";
+            foreach ($request->getHeaders() as $key => $value) {
+                if ($key === 'Authorization') {
+                    list($value) = explode(' ', implode(',', $value), 2);
+                    $value = [$value .' REDACTED'];
+                }
+                $inputHeader .= $key . ": ". implode(',', $value) . "\r\n";
+            }
+            // reopen the input so we can read it (again)
+            $inputBody = stream_get_contents(fopen('php://input', 'r'));
+            // format incoming xml to be better human readable
+            if (stripos($inputBody, '<?xml') === 0) {
+                $dom = new \DOMDocument('1.0', 'utf-8');
+                $dom->preserveWhiteSpace = false;
+                $dom->formatOutput = true;
+                $dom->loadXML($inputBody);
+                $inputBody = $dom->saveXML();
+            }
+            // log incoming data
+            $this->logger->debug("INPUT\n".$inputHeader ."\n". $inputBody);
+        }
+    }
+
+    /**
+     * Logs the outgoing data (headers + body) to debug.
+     *
+     * @param \Sabre\HTTP\ResponseInterface $response
+     *
+     * @access public
+     * @return void
+     */
+    public function LogOutgoing(\Sabre\HTTP\ResponseInterface $response) {
+        // only do any of this is we are looking for debug messages
+        if ($this->logger->isDebugEnabled()) {
+            $output = 'HTTP/'. $response->getHttpVersion() .' ' . $response->getStatus() . ' ' . $response->getStatusText() . "\n";
+            foreach ($response->getHeaders() as $key => $value) {
+                $output .= $key . ": ". implode(',', $value) . "\n";
+            }
+            $outputBody = ob_get_contents();
+            if (stripos($outputBody, '<?xml') === 0) {
+                $dom = new \DOMDocument('1.0', 'utf-8');
+                $dom->preserveWhiteSpace = false;
+                $dom->formatOutput = true;
+                $dom->loadXML($outputBody);
+                $outputBody = $dom->saveXML();
+            }
+            $this->logger->debug("OUTPUT:\n". $output . "\n" . $outputBody);
+
+            ob_end_flush();
+        }
+    }
+
 
     /**
      * Runs the arguments through sprintf() and sends it to the logger.
