@@ -191,8 +191,10 @@ class KLogger {
             }
             $outArgs[] = $arg;
         }
-        // call sprintf() with the arguments
-        $message = call_user_func_array('sprintf', $outArgs);
+        // Call sprintf() with the arguments only if there are format parameters because
+        // otherwise sprintf will complain about too few arguments.
+        // This also prevents throwing errors if there are %-chars in the $outArgs.
+        $message = (count($outArgs) > 1) ? call_user_func_array('sprintf', $outArgs) : $outArgs[0];
         // prepend class+method and log the message
         $this->logger->log($level, $this->getCaller(2) . $message . $suffix, null);
     }
@@ -212,7 +214,9 @@ class KLogger {
             $this->logger->error(sprintf("No arguments in %s->%s() logging to '%s' in %s:%d", static::GetClassnameOnly($t[2]['class']), $t[2]['function'], $t[1]['function'], $t[2]['file'], $t[2]['line']));
             return false;
         }
-        if ((substr_count($arguments[0], "%") - $quoted_procent*2) !== $count-1) {
+        // Only check formatting if there are format parameters. Otherwise there will be
+        // an error log if the $arguments[0] contain %-chars.
+        if (($count > 1) && ((substr_count($arguments[0], "%") - $quoted_procent*2) !== $count-1)) {
             $this->logger->error(sprintf("Wrong number of arguments in %s->%s() logging to '%s' in %s:%d", static::GetClassnameOnly($t[2]['class']), $t[2]['function'], $t[1]['function'], $t[1]['file'], $t[1]['line']));
             return false;
         }
