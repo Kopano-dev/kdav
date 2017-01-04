@@ -301,7 +301,7 @@ class KLogger {
                 return;
             }
         }
-        if ($this->isTraceEnabled()) {
+        if ($this->logger->isTraceEnabled()) {
             $this->writeLog(\LoggerLevel::getLevelTrace(), func_get_args());
         }
     }
@@ -323,7 +323,7 @@ class KLogger {
                 return;
             }
         }
-        if ($this->isDebugEnabled()) {
+        if ($this->logger->isDebugEnabled()) {
             $this->writeLog(\LoggerLevel::getLevelDebug(), func_get_args());
         }
     }
@@ -345,7 +345,7 @@ class KLogger {
                 return;
             }
         }
-        if ($this->isInfoEnabled()) {
+        if ($this->logger->isInfoEnabled()) {
             $this->writeLog(\LoggerLevel::getLevelInfo(), func_get_args());
         }
     }
@@ -367,7 +367,7 @@ class KLogger {
                 return;
             }
         }
-        if ($this->isWarnEnabled()) {
+        if ($this->logger->isWarnEnabled()) {
             $this->writeLog(\LoggerLevel::getLevelWarn(), func_get_args(), ' - '. $this->getCaller(1, true));
         }
     }
@@ -389,7 +389,7 @@ class KLogger {
                 return;
             }
         }
-        if ($this->isErrorEnabled()) {
+        if ($this->logger->isErrorEnabled()) {
             $this->writeLog(\LoggerLevel::getLevelError(), func_get_args(), ' - '. $this->getCaller(1, true));
         }
     }
@@ -411,56 +411,8 @@ class KLogger {
                 return;
             }
         }
-        if ($this->isFatalEnabled()) {
+        if ($this->logger->isFatalEnabled()) {
             $this->writeLog(\LoggerLevel::getLevelFatal(), func_get_args(), ' - '. $this->getCaller(1, true));
         }
-    }
-
-    /**
-     * Check whether this Logger is enabled for the TRACE Level.
-     * @return boolean
-     */
-    public function isTraceEnabled() {
-        return $this->logger->isEnabledFor(\LoggerLevel::getLevelTrace());
-    }
-
-    /**
-     * Check whether this Logger is enabled for the DEBUG Level.
-     * @return boolean
-     */
-    public function isDebugEnabled() {
-        return $this->logger->isEnabledFor(\LoggerLevel::getLevelDebug());
-    }
-
-    /**
-     * Check whether this Logger is enabled for the INFO Level.
-     * @return boolean
-     */
-    public function isInfoEnabled() {
-        return $this->logger->isEnabledFor(\LoggerLevel::getLevelInfo());
-    }
-
-    /**
-     * Check whether this Logger is enabled for the WARN Level.
-     * @return boolean
-     */
-    public function isWarnEnabled() {
-        return $this->logger->isEnabledFor(\LoggerLevel::getLevelWarn());
-    }
-
-    /**
-     * Check whether this Logger is enabled for the ERROR Level.
-     * @return boolean
-     */
-    public function isErrorEnabled() {
-        return $this->logger->isEnabledFor(\LoggerLevel::getLevelError());
-    }
-
-    /**
-     * Check whether this Logger is enabled for the FATAL Level.
-     * @return boolean
-     */
-    public function isFatalEnabled() {
-        return $this->logger->isEnabledFor(\LoggerLevel::getLevelFatal());
     }
 }
