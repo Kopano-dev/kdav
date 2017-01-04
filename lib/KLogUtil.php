@@ -39,56 +39,6 @@ class KLogUtil {
      */
     public function __construct($logger) {
         $this->logger = $logger;
-
-        // keep an output puffer in case we do debug logging
-        if ($this->logger->isDebugEnabled()) {
-            ob_start();
-        }
-
-        // let KLogUtil handle error messages
-        set_error_handler('\\Kopano\\DAV\\KLogUtil::ErrorHandler');
-    }
-
-    /**
-     * The KopanoDav error handler.
-     *
-     * @param int $errno
-     * @param string $errstr
-     * @param string $errfile
-     * @param int $errline
-     * @param mixed $errcontext
-     */
-    function ErrorHandler($errno, $errstr, $errfile, $errline, $errcontext) {
-        // this is from Z-Push but might be helpful in the future: https://wiki.z-hub.io/x/sIEa
-        if (defined('LOG_ERROR_MASK')) $errno &= LOG_ERROR_MASK;
-
-        switch ($errno) {
-            case 0:
-                // logging disabled by LOG_ERROR_MASK
-                break;
-
-            case E_DEPRECATED:
-                // do not handle this message
-                break;
-
-            case E_NOTICE:
-            case E_WARNING:
-                $logger = \Logger::getLogger('error');
-                $logger->warn("$errfile:$errline $errstr ($errno)");
-                break;
-
-            default:
-                $bt = debug_backtrace();
-                $logger = \Logger::getLogger('error');
-                $logger->error("trace error: $errfile:$errline $errstr ($errno) - backtrace: ". (count($bt)-1) . " steps");
-                for($i = 1, $bt_length = count($bt); $i < $bt_length; $i++) {
-                    $file = $line = "unknown";
-                    if (isset($bt[$i]['file'])) $file = $bt[$i]['file'];
-                    if (isset($bt[$i]['line'])) $line = $bt[$i]['line'];
-                    $logger->error("trace: $i:". $file . ":" . $line. " - " . ((isset($bt[$i]['class']))? $bt[$i]['class'] . $bt[$i]['type']:""). $bt[$i]['function']. "()");
-                }
-                break;
-        }
     }
 
     /**
