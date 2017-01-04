@@ -143,7 +143,7 @@ class KLogger {
                 $inputBody = $dom->saveXML();
             }
             // log incoming data
-            $this->logger->debug("INPUT\n".$inputHeader ."\n". $inputBody);
+            $this->debug("INPUT\n".$inputHeader ."\n". $inputBody);
         }
     }
 
@@ -170,7 +170,7 @@ class KLogger {
                 $dom->loadXML($outputBody);
                 $outputBody = $dom->saveXML();
             }
-            $this->logger->debug("OUTPUT:\n". $output . "\n" . $outputBody);
+            $this->debug("OUTPUT:\n". $output . "\n" . $outputBody);
 
             ob_end_flush();
         }
