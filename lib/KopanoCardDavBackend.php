@@ -127,7 +127,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      * @return array
      */
     public function getCards($addressbookId) {
-        $this->logger->trace("addressBookId: %s", $addressBookId);
+        $this->logger->trace("addressbookId: %s", $addressbookId);
         return array();
     }
 
