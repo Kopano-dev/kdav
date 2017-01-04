@@ -70,6 +70,16 @@ class KLogger {
     }
 
     /**
+     * Destroy configurations for logger definitions.
+     *
+     * @access public
+     * @return void
+     */
+    public function resetConfiguration() {
+        \Logger::resetConfiguration();
+    }
+
+    /**
      * Returns a KLogger by name. If it does not exist, it will be created.
      *
      * @param string $name The logger name
