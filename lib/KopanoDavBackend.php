@@ -67,11 +67,24 @@ class KopanoDavBackend {
         return true;
     }
 
+    /**
+     * Returns the authenticated user.
+     *
+     * @access public
+     * @return String
+     */
     public function GetUser() {
         $this->logger->trace($this->user);
         return $this->user;
     }
 
+    /**
+     * Returns a list of folders for a MAPI class.
+     *
+     * @param string $principalUri
+     * @param string $class
+     * @return array
+     */
     public function GetFolders($principalUri, $class) {
         $this->logger->trace("principal '%s', class '%s'", $principalUri, $class);
         $folders = array();
@@ -79,8 +92,6 @@ class KopanoDavBackend {
         // TODO limit the output to subfolders of the principalUri?
 
         $rootfolder = mapi_msgstore_openentry($this->store);
-        $rootfolderprops = mapi_getprops($rootfolder, array(PR_SOURCE_KEY));
-
         $hierarchy =  mapi_folder_gethierarchytable($rootfolder, CONVENIENT_DEPTH);
         // TODO also filter hidden folders
         $restriction = array(RES_PROPERTY, array(RELOP => RELOP_EQ, ULPROPTAG => PR_CONTAINER_CLASS, VALUE => $class));
@@ -92,7 +103,7 @@ class KopanoDavBackend {
 
         foreach ($rows as $row) {
             $folders[] = [
-                'id'           => bin2hex($row[PR_ENTRYID]),
+                'id'           => bin2hex($row[PR_SOURCE_KEY]),
                 'uri'          => $row[PR_DISPLAY_NAME],
                 'principaluri' => $principalUri,
             ];
@@ -101,8 +112,16 @@ class KopanoDavBackend {
         return $folders;
     }
 
-    public function GetMapiFolder($entryid) {
-        return mapi_msgstore_openentry($this->store, hex2bin($entryid));
+    /**
+     * Returns a mapi folder resource for a folderid (PR_SOURCE_KEY).
+     *
+     * @param string $folderid
+     * @return mapiresource
+     */
+    public function GetMapiFolder($folderid) {
+        $this->logger->trace('Id: %s', $folderid);
+        $entryid = mapi_msgstore_entryidfromsourcekey($this->store, hex2bin($folderid));
+        return mapi_msgstore_openentry($this->store, $entryid);
     }
 
     public function GetAddressBook() {
@@ -118,8 +137,146 @@ class KopanoDavBackend {
         return $this->session;
     }
 
-    public function IsOurId($id) {
-        return !preg_match("/[^A-Fa-f0-9]/", $id);
+    /**
+     * Returns a object ID of a mapi object.
+     * If set, PROP_APPTTSREF will be preferred. If not, the PROP_GOID will be used if available.
+     * If both are not set, the PR_SOURCE_KEY of the message (as hex) will be returned.
+     *
+     * This order is reflected as well when searching for a message with these ids in KopanoDavBackend->GetMapiMessageForId().
+     *
+     * @param mapiresource $mapimessage
+     * @return string
+     */
+    public function GetIdOfMapiMessage($mapimessage) {
+        $this->logger->trace("Finding ID of %s", $mapimessage);
+        $properties = getPropIdsFromStrings($this->store, ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
+
+        // It's one of these, order:
+        // - PROP_APPTTSREF (if set)
+        // - PROP_GOID (if set)
+        // - PR_SOURCE_KEY
+        $props = mapi_getprops($mapimessage, array($properties['appttsref'], $properties['goid'], PR_SOURCE_KEY));
+        if (isset($props[$properties['appttsref']])) {
+            $this->logger->debug("Found PROP_APPTTSREF: %s", $props[$properties['appttsref']]);
+            return $props[$properties['appttsref']];
+        }
+        elseif (isset($props[$properties['goid']])) {
+            $id = bin2hex($props[$properties['goid']]);
+            $this->logger->debug("Found PROP_GOID: %s", $id);
+            return $id;
+        }
+        // is always available
+        else {
+            $id = bin2hex($props[PR_SOURCE_KEY]);
+            $this->logger->debug("Found PR_SOURCE_KEY: %s", $id);
+            return $id;
+        }
+    }
+
+    /**
+     * Finds and opens a MapiMessage from an objectId.
+     * The id can be a vCal-Uid, an OL-GOID or a PR_SOURCE_KEY (as hex).
+     *
+     * @param string $calendarId
+     * @param string $id
+     * @param mapiresource $mapifolder optional
+     *
+     * @access public
+     * @return NULL|mapiresource
+     */
+    public function GetMapiMessageForId($calendarId, $id, $mapifolder = null) {
+        $this->logger->trace("Searching for '%s' in '%s' (%s)", $id, $calendarId, $mapifolder);
+
+        if (!$mapifolder) {
+            $mapifolder = $this->GetMapiFolder($calendarId);
+        }
+
+        /* The ID can be several different things:
+         * - a UID that is saved in PROP_APPTTSREF
+         * - a PROP_GOID (containing a vCal-Uid or not)
+         * - a PR_SOURCE_KEY
+         *
+         * If it's a sourcekey, we can open the message directly.
+         * If it's a UID, we:
+         *   - search PROP_APPTTSREF with this value AND/OR
+         *   - search PROP_GOID with the encapsulated value (Utils::GetOLUidFromICalUid())
+         * If it's a GOID, we search PROP_GOID directly
+         */
+        $properties = getPropIdsFromStrings($this->store, ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
+
+        $entryid = false;
+
+        // an encoded vCal-uid or directly an UUID
+        if (Utils::IsEncodedVcalUid($id) || Utils::IsValidUUID($id)) {
+            $uid = Utils::GetICalUidFromOLUid($id);
+
+            if (Utils::isOutlookUid($id)) {
+                $goid = $id;
+            }
+            else {
+                $goid = Utils::GetOLUidFromICalUid($id);
+            }
+
+            // build a restriction that looks for the id in PROP_APPTTSREF or encoded in PROP_GOID
+            $restriction =  Array(RES_OR,
+                                Array (
+                                    Array(RES_PROPERTY,
+                                        Array(RELOP => RELOP_EQ,
+                                            ULPROPTAG => $properties["appttsref"],
+                                            VALUE => $uid
+                                        )
+                                    ),
+                                    Array(RES_PROPERTY,
+                                        Array(RELOP => RELOP_EQ,
+                                            ULPROPTAG => $properties["goid"],
+                                            VALUE => hex2bin($goid)
+                                            )
+                                        )
+                                    )
+                                );
+            $this->logger->trace("Is vCal-Uid '%s' - GOID %s", $uid, $goid);
+        }
+        // it's a real OL UID (without vCal uid)
+        elseif (Utils::IsOutlookUid($id)) {
+            // build a restriction that looks for the id in PROP_GOID
+            $restriction =  Array(RES_PROPERTY,
+                                    Array(RELOP => RELOP_EQ,
+                                            ULPROPTAG => $properties["goid"],
+                                            VALUE => hex2bin($id)
+                                            )
+                                    );
+            $this->logger->trace("Is OL-GOID %s", $id);
+        }
+        // it's just hex, so it's a sourcekey
+        elseif (ctype_xdigit($id)) {
+            $this->logger->trace("Is PR_SOURCE_KEY %s", $id);
+            $entryid = mapi_msgstore_entryidfromsourcekey($this->store, hex2bin($calendarId), hex2bin($id));
+            $restriction = false;
+        }
+
+        // find the message if we have a restriction
+        if ($restriction) {
+            $table = mapi_folder_getcontentstable($mapifolder);
+            // Get requested properties, plus whatever we need
+            $proplist = array(PR_ENTRYID);
+            $rows = mapi_table_queryallrows($table, $proplist, $restriction);
+            if (count($rows) > 1) {
+                $this->logger->warn("Found %d entries for id '%s' searching for message", count($rows), $id);
+            }
+            if (isset($rows[0]) && isset($rows[0][PR_ENTRYID])) {
+                $entryid = $rows[0][PR_ENTRYID];
+            }
+        }
+        if ($entryid) {
+            $mapimessage = mapi_msgstore_openentry($this->store, $entryid);
+            if(!$mapimessage) {
+                $this->logger->warn("Error, unable to open entry id: 0x%X", $entryid, mapi_last_hresult());
+                return null;
+            }
+            return $mapimessage;
+        }
+        $this->logger->debug("Nothing found for %s", $id);
+        return null;
     }
 
 }

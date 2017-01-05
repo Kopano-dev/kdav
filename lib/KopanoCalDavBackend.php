@@ -34,7 +34,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
     /*
      * TODO IMPLEMENT
      *
-     * SyncSupport,
+     * implements \Sabre\CalDAV\Backend\SyncSupport,
      * SubscriptionSupport,
      * SchedulingSupport,
      * SharingSupport,
@@ -139,15 +139,19 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      */
     function getCalendarObjects($calendarId) {
         $this->logger->trace("calendarId: %s", $calendarId);
-        // TODO: retrival (search & opening) should be done in KopanoDavBackend and be used in CardDav as well
+
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
 
         $table = mapi_folder_getcontentstable($folder);
-        $rows = mapi_table_queryallrows($table, array(PR_ENTRYID, PR_LAST_MODIFICATION_TIME));
+        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME));
 
         $result = [];
         foreach($rows as $row) {
-            $result[] = $this->getCalendarObject($calendarId, bin2hex($row[PR_ENTRYID]).'.ics');
+            // at the end, the calendar objects might have a different ID, but $this->getCalendarObject() is able to handle the PR_SOURCE_KEY
+            $obj = $this->getCalendarObject($calendarId, bin2hex($row[PR_SOURCE_KEY]).'.ics', $folder);
+            if (is_array($obj)) {
+                $result[] = $obj;
+            }
         }
         $this->logger->trace("found %d objects", count($result));
         return $result;
@@ -168,37 +172,38 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      *
      * @param string $calendarId
      * @param string $objectUri
+     * @param ressource $mapifolder     optional mapifolder resource, used if avialable
      * @return array|null
      */
-    function getCalendarObject($calendarId, $objectUri) {
-        $this->logger->trace("calendarId: %s - objectUri: %s", $calendarId, $objectUri);
-        // TODO Check if retrival (search & opening) could be done in KopanoDavBackend and be used in CardDav as well
+    function getCalendarObject($calendarId, $objectUri, $mapifolder = null) {
+        $this->logger->trace("calendarId: %s - objectUri: %s - mapifolder: %s", $calendarId, $objectUri, $mapifolder);
 
-        // cut off '.ics'
-        $objectId = substr($objectUri, 0, -4);
-        if (!$this->kDavBackend->IsOurId($objectId)) {
-            error_log("getCalendarObject: not our ID: ". $objectUri);
+        if (!$mapifolder) {
+            $mapifolder = $this->kDavBackend->GetMapiFolder($calendarId);
+        }
+
+        $objectId = $this->getObjectIdFromObjectUri($objectUri);
+        $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId, $mapifolder);
+        if (!$mapimessage) {
+            $this->logger->debug("Object NOT FOUND");
             return null;
         }
 
+        $realId = $this->kDavBackend->GetIdOfMapiMessage($mapimessage);
 
         // this should be cached or moved to kDavBackend
-        $store = $this->kDavBackend->GetStore();
         $session = $this->kDavBackend->GetSession();
         $ab = $this->kDavBackend->GetAddressBook();
 
-        $msg = mapi_msgstore_openentry($store, hex2bin($objectId));
-
-        $ics = mapi_mapitoical($session, $ab, $msg, array());
-        $props = mapi_getprops($msg, array(PR_LAST_MODIFICATION_TIME));
-
+        $ics = mapi_mapitoical($session, $ab, $mapimessage, array());
+        $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
 
         $r = [
-                'id'            => $objectId,
-                'uri'           => $objectUri,
+                'id'            => $realId,
+                'uri'           => $realId . ".ics",
                 'etag'          => '"' . $props[PR_LAST_MODIFICATION_TIME] . '"',
                 'lastmodified'  => $props[PR_LAST_MODIFICATION_TIME],
-                'calendarid'    => $objectId,
+                'calendarid'    => $calendarId,
                 'size'          => strlen($ics),
                 'calendardata'  => $ics,
         ];
@@ -226,11 +231,18 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      */
     function createCalendarObject($calendarId, $objectUri, $calendarData) {
         $this->logger->trace("calendarId: %s - objectUri: %s - calendarData: %s", $calendarId, $objectUri, $calendarData);
-        // TODO create & save should be done in KopanoDavBackend, the actually setting of data could be done here - use same functionality as in updateCalendarObject
-        error_log("createCalendarObject($calendarId, $objectUri, $calendarData)");
+
+        $objectId = $this->getObjectIdFromObjectUri($objectUri);
+        $store = $this->kDavBackend->GetStore();
+
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
-        $msg = mapi_folder_createmessage($folder);
-        return $this->setData($msg, $calendarData);
+        $mapimessage = mapi_folder_createmessage($folder);
+
+        // we save the objectId in PROP_APPTTSREF so we find it by this id
+        $properties = getPropIdsFromStrings($store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
+        mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
+
+        return $this->setData($mapimessage, $calendarData);
     }
 
     /**
@@ -253,26 +265,23 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      */
     function updateCalendarObject($calendarId, $objectUri, $calendarData) {
         $this->logger->trace("calendarId: %s - objectUri: %s - calendarData: %s", $calendarId, $objectUri, $calendarData);
-        // TODO open & save should be implemneted in KopanoDavBackend, the actually setting of data should be done here - use same functionality as in createCalendarObject
-        //$folder = $this->kDavBackend->GetMapiFolder($calendarId);
-        // cut off '.ics'
-        $objectId = substr($objectUri, 0, -4);
-        $store = $this->kDavBackend->GetStore();
-        $msg = mapi_msgstore_openentry($store, hex2bin($objectId));
-        return $this->setData($msg, $calendarData);
+
+        $objectId = $this->getObjectIdFromObjectUri($objectUri);
+        $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId);
+        return $this->setData($mapimessage, $calendarData);
     }
 
-    private function setData($msg, $ics) {
-        $this->logger->trace("msg: %s - ics: %s", $msg, $ics);
+    private function setData($mapimessage, $ics) {
+        $this->logger->trace("mapimessage: %s - ics: %s", $mapimessage, $ics);
         // this should be cached or moved to kDavBackend
         $store = $this->kDavBackend->GetStore();
         $session = $this->kDavBackend->GetSession();
         $ab = $this->kDavBackend->GetAddressBook();
 
-        $ok = mapi_icaltomapi($session, $store, $ab, $msg, $ics, false);
+        $ok = mapi_icaltomapi($session, $store, $ab, $mapimessage, $ics, false);
         if ($ok) {
-            mapi_message_savechanges($msg);
-            $props = mapi_getprops($msg, array(PR_LAST_MODIFICATION_TIME));
+            mapi_message_savechanges($mapimessage);
+            $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
             return $props[PR_LAST_MODIFICATION_TIME];
         }
         return null;
@@ -289,10 +298,27 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      */
     function deleteCalendarObject($calendarId, $objectUri) {
         $this->logger->trace("calendarId: %s - objectUri: %s", $calendarId, $objectUri);
-        // TODO should be implemented in KopanoDavBackend and be used also for CardDav
-        $folder = $this->kDavBackend->GetMapiFolder($calendarId);
-        $objectId = substr($objectUri, 0, -4);
-        mapi_folder_deletemessages($folder, array(hex2bin($objectId)));
+
+        $mapifolder = $this->kDavBackend->GetMapiFolder($calendarId);
+        $objectId = $this->getObjectIdFromObjectUri($objectUri);
+
+        // to delete we need the PR_ENTRY_ID of the message
+        $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId, $mapifolder);
+        $props = mapi_getprops($mapimessage, array(PR_ENTRYID));
+        mapi_folder_deletemessages($mapifolder, array($props[PR_ENTRYID]));
     }
 
+    /**
+     * Returns the objectId from an objectUri.
+     *
+     * @param string $objectUri
+     *
+     * @access protected
+     * @return string
+     */
+    protected function getObjectIdFromObjectUri($objectUri) {
+        // TODO we should do more tests here
+        // cut off '.ics' from the end
+        return substr($objectUri, 0, -4);
+    }
 }
