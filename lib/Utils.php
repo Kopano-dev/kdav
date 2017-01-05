@@ -39,7 +39,7 @@ class Utils {
      * @access public
      * @return boolean installed version is superior to the checked string
      */
-    static public function CheckMapiExtVersion($version = "") {
+    public static function CheckMapiExtVersion($version = "") {
         if (!extension_loaded("mapi")) {
             return false;
         }
@@ -71,5 +71,85 @@ class Utils {
         $fBase = floor($base);
         $pow = pow(1024, $base - $fBase);
         return sprintf ("%.{$precision}f %s", $pow, $units[$fBase]);
+    }
+
+    /**
+     * Parses and returns an ecoded vCal-Uid from an OL compatible GlobalObjectID.
+     *
+     * @param string    $olUid      an OL compatible GlobalObjectID as HEX
+     *
+     * @access public
+     * @return string   the vCal-Uid if available in the olUid, else the original olUid
+     */
+    public static function GetICalUidFromOLUid($olUid){
+        if (ctype_xdigit($olUid)) {
+            // get a binary representation of it
+            $icalUidBi = hex2bin($olUid);
+            // check if "vCal-Uid" is somewhere in outlookid case-insensitive
+            $icalUid = stristr($icalUidBi, "vCal-Uid");
+            if ($icalUid !== false) {
+                //get the length of the ical id - go back 4 position from where "vCal-Uid" was found
+                $begin = unpack("V", substr($icalUidBi, strlen($icalUid) * (-1) - 4, 4));
+                //remove "vCal-Uid" and packed "1" and use the ical id length
+                return substr($icalUid, 12, ($begin[1] - 13));
+            }
+        }
+        return $olUid;
+    }
+
+    /**
+     * Indicates if a given UID contains a vCal-Uid or not.
+     *
+     * @param string $uid (as hex)
+     * @return boolean
+     */
+    public static function IsEncodedVcalUid($uid) {
+        return ctype_xdigit($uid) && stristr(hex2bin($uid), "vCal-Uid") !== false;
+    }
+
+    /**
+     * Indicates if a guiven UID is an OL GOID or not.
+     *
+     * @param string $uid
+     * @return boolean
+     */
+    public static function IsOutlookUid($uid) {
+        return 0 === stripos($uid, '040000008200E00074C5B7101A82E008');
+    }
+
+    /**
+     * Checks if it's a valid UUID as specified in RFC4122.
+     *
+     * @param string    $uuid
+     *
+     * @access public
+     * @return boolean
+     */
+    public static function IsValidUUID($uuid) {
+        return !!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $uuid);
+    }
+
+
+    /**
+     * Checks the given UID if it is an OL compatible GlobalObjectID
+     * If not, the given UID is encoded inside the GlobalObjectID
+     *
+     * @param string    $icalUid    an appointment uid as HEX
+     *
+     * @access public
+     * @return string   an OL compatible GlobalObjectID
+     *
+     */
+    public static function GetOLUidFromICalUid($icalUid) {
+        if (strlen($icalUid) <= 64) {
+            $len = 13 + strlen($icalUid);
+            $OLUid = pack("V", $len);
+            $OLUid .= "vCal-Uid";
+            $OLUid .= pack("V", 1);
+            $OLUid .= $icalUid;
+            return "040000008200E00074C5B7101A82E0080000000000000000000000000000000000000000". bin2hex($OLUid). "00";
+        }
+        else
+            return $icalUid;
     }
 }
