@@ -129,11 +129,11 @@ class KLogger {
         $t = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
 
         if ($count == 0) {
-            $this->logger->error(sprintf("No arguments in %s->%s() logging to '%s' in %s:%d", static::GetClassnameOnly($t[2]['class']), $t[2]['function'], $t[1]['function'], $t[2]['file'], $t[2]['line']));
+            $this->logger->error(sprintf("No arguments in %s->%s() logging to '%s' in %s:%d", static::GetClassnameOnly($t[2]['class']), $t[2]['function'], $t[1]['function'], $t[1]['file'], $t[1]['line']));
             return false;
         }
         if ((substr_count($arguments[0], "%") - $quoted_procent*2) !== $count-1) {
-            $this->logger->error(sprintf("Wrong number of arguments in %s->%s() logging to '%s' in %s:%d", static::GetClassnameOnly($t[2]['class']), $t[2]['function'], $t[1]['function'], $t[2]['file'], $t[2]['line']));
+            $this->logger->error(sprintf("Wrong number of arguments in %s->%s() logging to '%s' in %s:%d", static::GetClassnameOnly($t[2]['class']), $t[2]['function'], $t[1]['function'], $t[1]['file'], $t[1]['line']));
             return false;
         }
         return true;
@@ -153,7 +153,7 @@ class KLogger {
             if ($fileline) {
                 return $t[$wlevel]['file']. ":" . $t[$wlevel]['line'];
             }
-            return $t[$wlevel]['function'] .'->'. $t[$wlevel]['function']. '(): ';
+            return $this->GetClassnameOnly($t[$wlevel]['class']) .'->'. $t[$wlevel]['function']. '(): ';
         }
         return '';
     }
