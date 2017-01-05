@@ -302,7 +302,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
         $mapifolder = $this->kDavBackend->GetMapiFolder($calendarId);
         $objectId = $this->getObjectIdFromObjectUri($objectUri);
 
-        // to delete we need the PR_ENTRY_ID of the message
+        // to delete we need the PR_ENTRYID of the message
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId, $mapifolder);
         $props = mapi_getprops($mapimessage, array(PR_ENTRYID));
         mapi_folder_deletemessages($mapifolder, array($props[PR_ENTRYID]));
