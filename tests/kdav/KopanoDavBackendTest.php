@@ -31,6 +31,15 @@
 namespace Kopano\DAV;
 
 class KopanoDavBackendTest extends \PHPUnit_Framework_TestCase {
+    protected $kDavBackend;
+
+    public function setUp() {
+        $this->kDavBackend = new KopanoDavBackend(null);
+    }
+
+    public function tearDown() {
+        $this->kDavBackend = null;
+    }
 
     /**
      * Tests if the constructor is created without errors.
@@ -39,7 +48,7 @@ class KopanoDavBackendTest extends \PHPUnit_Framework_TestCase {
      * @return void
      */
     public function testConstruct() {
-        $kDavBackend = new KopanoDavBackend(null);
-        $this->assertTrue(is_object($kDavBackend));
+        $this->assertTrue(is_object($this->kDavBackend));
     }
+
 }

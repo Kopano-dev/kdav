@@ -37,7 +37,6 @@ require __DIR__ . '/vendor/autoload.php';
 // Configure & create main logger
 KLogger::configure(__DIR__ . '/log4php.xml');
 $logger = KLogger::GetLogger('main');
-$logUtil = new KLogUtil($logger);
 
 // don't log any Sabre asset requests (images etc)
 if (isset($_REQUEST['sabreAction']) && $_REQUEST['sabreAction'] == 'asset') {
@@ -68,7 +67,7 @@ $nodes = array(
 // initialize the server
 $server = new \Sabre\DAV\Server($nodes);
 $server->setBaseUri(DAV_ROOT_URI);
-$server->setLogger($logUtil->GetPSRLoggerInterface());
+$server->setLogger(new KPSR3Logger($logger));
 
 $authPlugin = new \Sabre\DAV\Auth\Plugin($authBackend, SABRE_AUTH_REALM);
 $server->addPlugin($authPlugin);
@@ -77,7 +76,7 @@ $server->addPlugin($authPlugin);
 $server->httpResponse->addHeader('X-KDAV-Version', KDAV_VERSION);
 
 // log the incoming request (only if authenticated)
-$logUtil->LogIncoming($server->httpRequest);
+$logger->LogIncoming($server->httpRequest);
 
 $aclPlugin = new \Sabre\DAVACL\Plugin();
 $aclPlugin->allowUnauthenticatedAccess = false;
@@ -94,7 +93,7 @@ $server->addPlugin(new \Sabre\DAV\Browser\Plugin(false));
 $server->exec();
 
 // Log outgoing data
-$logUtil->LogOutgoing($server->httpResponse);
+$logger->LogOutgoing($server->httpResponse);
 
 $logger->debug("httpcode='%s' memory='%s/%s' time='%ss'",
                 http_response_code(), Utils::FormatBytes(memory_get_peak_usage(false)), Utils::FormatBytes(memory_get_peak_usage(true)),

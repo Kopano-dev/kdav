@@ -48,6 +48,14 @@ class KLogger {
      */
     public function __construct($name) {
         $this->logger = \Logger::getLogger($name);
+
+        // keep an output puffer in case we do debug logging
+        if ($this->logger->isDebugEnabled()) {
+            ob_start();
+        }
+
+        // let KLogger handle error messages
+        set_error_handler('\\Kopano\\DAV\\KLogger::ErrorHandler');
     }
 
     /**
@@ -67,6 +75,16 @@ class KLogger {
      */
     public static function configure($configuration = null, $configurator = null) {
         \Logger::configure($configuration, $configurator);
+    }
+
+    /**
+     * Destroy configurations for logger definitions.
+     *
+     * @access public
+     * @return void
+     */
+    public function resetConfiguration() {
+        \Logger::resetConfiguration();
     }
 
     /**
@@ -95,6 +113,68 @@ class KLogger {
         return substr(strrchr($namespaceWithClass, '\\'), 1);
     }
 
+    /**
+     * Logs the incoming data (headers + body) to debug.
+     *
+     * @param \Sabre\HTTP\RequestInterface $request
+     *
+     * @access public
+     * @return void
+     */
+    public function LogIncoming(\Sabre\HTTP\RequestInterface $request) {
+        // only do any of this is we are looking for debug messages
+        if ($this->logger->isDebugEnabled()) {
+            $inputHeader = $request->getMethod() . ' ' . $request->getUrl() . ' HTTP/' . $request->getHTTPVersion() . "\r\n";
+            foreach ($request->getHeaders() as $key => $value) {
+                if ($key === 'Authorization') {
+                    list($value) = explode(' ', implode(',', $value), 2);
+                    $value = [$value .' REDACTED'];
+                }
+                $inputHeader .= $key . ": ". implode(',', $value) . "\r\n";
+            }
+            // reopen the input so we can read it (again)
+            $inputBody = stream_get_contents(fopen('php://input', 'r'));
+            // format incoming xml to be better human readable
+            if (stripos($inputBody, '<?xml') === 0) {
+                $dom = new \DOMDocument('1.0', 'utf-8');
+                $dom->preserveWhiteSpace = false;
+                $dom->formatOutput = true;
+                $dom->loadXML($inputBody);
+                $inputBody = $dom->saveXML();
+            }
+            // log incoming data
+            $this->debug("INPUT\n".$inputHeader ."\n". $inputBody);
+        }
+    }
+
+    /**
+     * Logs the outgoing data (headers + body) to debug.
+     *
+     * @param \Sabre\HTTP\ResponseInterface $response
+     *
+     * @access public
+     * @return void
+     */
+    public function LogOutgoing(\Sabre\HTTP\ResponseInterface $response) {
+        // only do any of this is we are looking for debug messages
+        if ($this->logger->isDebugEnabled()) {
+            $output = 'HTTP/'. $response->getHttpVersion() .' ' . $response->getStatus() . ' ' . $response->getStatusText() . "\n";
+            foreach ($response->getHeaders() as $key => $value) {
+                $output .= $key . ": ". implode(',', $value) . "\n";
+            }
+            $outputBody = ob_get_contents();
+            if (stripos($outputBody, '<?xml') === 0) {
+                $dom = new \DOMDocument('1.0', 'utf-8');
+                $dom->preserveWhiteSpace = false;
+                $dom->formatOutput = true;
+                $dom->loadXML($outputBody);
+                $outputBody = $dom->saveXML();
+            }
+            $this->debug("OUTPUT:\n". $output . "\n" . $outputBody);
+
+            ob_end_flush();
+        }
+    }
 
     /**
      * Runs the arguments through sprintf() and sends it to the logger.
@@ -111,8 +191,10 @@ class KLogger {
             }
             $outArgs[] = $arg;
         }
-        // call sprintf() with the arguments
-        $message = call_user_func_array('sprintf', $outArgs);
+        // Call sprintf() with the arguments only if there are format parameters because
+        // otherwise sprintf will complain about too few arguments.
+        // This also prevents throwing errors if there are %-chars in the $outArgs.
+        $message = (count($outArgs) > 1) ? call_user_func_array('sprintf', $outArgs) : $outArgs[0];
         // prepend class+method and log the message
         $this->logger->log($level, $this->getCaller(2) . $message . $suffix, null);
     }
@@ -132,7 +214,9 @@ class KLogger {
             $this->logger->error(sprintf("No arguments in %s->%s() logging to '%s' in %s:%d", static::GetClassnameOnly($t[2]['class']), $t[2]['function'], $t[1]['function'], $t[1]['file'], $t[1]['line']));
             return false;
         }
-        if ((substr_count($arguments[0], "%") - $quoted_procent*2) !== $count-1) {
+        // Only check formatting if there are format parameters. Otherwise there will be
+        // an error log if the $arguments[0] contain %-chars.
+        if (($count > 1) && ((substr_count($arguments[0], "%") - $quoted_procent*2) !== $count-1)) {
             $this->logger->error(sprintf("Wrong number of arguments in %s->%s() logging to '%s' in %s:%d", static::GetClassnameOnly($t[2]['class']), $t[2]['function'], $t[1]['function'], $t[1]['file'], $t[1]['line']));
             return false;
         }
@@ -159,6 +243,48 @@ class KLogger {
     }
 
     /**
+     * The KopanoDav error handler.
+     *
+     * @param int $errno
+     * @param string $errstr
+     * @param string $errfile
+     * @param int $errline
+     * @param mixed $errcontext
+     */
+    public static function ErrorHandler($errno, $errstr, $errfile, $errline, $errcontext) {
+        // this is from Z-Push but might be helpful in the future: https://wiki.z-hub.io/x/sIEa
+        if (defined('LOG_ERROR_MASK')) $errno &= LOG_ERROR_MASK;
+
+        switch ($errno) {
+            case 0:
+                // logging disabled by LOG_ERROR_MASK
+                break;
+
+            case E_DEPRECATED:
+                // do not handle this message
+                break;
+
+            case E_NOTICE:
+            case E_WARNING:
+                $logger = \Logger::getLogger('error');
+                $logger->warn("$errfile:$errline $errstr ($errno)");
+                break;
+
+            default:
+                $bt = debug_backtrace();
+                $logger = \Logger::getLogger('error');
+                $logger->error("trace error: $errfile:$errline $errstr ($errno) - backtrace: ". (count($bt)-1) . " steps");
+                for($i = 1, $bt_length = count($bt); $i < $bt_length; $i++) {
+                    $file = $line = "unknown";
+                    if (isset($bt[$i]['file'])) $file = $bt[$i]['file'];
+                    if (isset($bt[$i]['line'])) $line = $bt[$i]['line'];
+                    $logger->error("trace: $i:". $file . ":" . $line. " - " . ((isset($bt[$i]['class']))? $bt[$i]['class'] . $bt[$i]['type']:""). $bt[$i]['function']. "()");
+                }
+                break;
+        }
+    }
+
+    /**
      * Wrapper of the \Logger class
      */
 
@@ -179,7 +305,7 @@ class KLogger {
                 return;
             }
         }
-        if ($this->isTraceEnabled()) {
+        if ($this->logger->isTraceEnabled()) {
             $this->writeLog(\LoggerLevel::getLevelTrace(), func_get_args());
         }
     }
@@ -201,7 +327,7 @@ class KLogger {
                 return;
             }
         }
-        if ($this->isDebugEnabled()) {
+        if ($this->logger->isDebugEnabled()) {
             $this->writeLog(\LoggerLevel::getLevelDebug(), func_get_args());
         }
     }
@@ -223,7 +349,7 @@ class KLogger {
                 return;
             }
         }
-        if ($this->isInfoEnabled()) {
+        if ($this->logger->isInfoEnabled()) {
             $this->writeLog(\LoggerLevel::getLevelInfo(), func_get_args());
         }
     }
@@ -245,7 +371,7 @@ class KLogger {
                 return;
             }
         }
-        if ($this->isWarnEnabled()) {
+        if ($this->logger->isWarnEnabled()) {
             $this->writeLog(\LoggerLevel::getLevelWarn(), func_get_args(), ' - '. $this->getCaller(1, true));
         }
     }
@@ -267,7 +393,7 @@ class KLogger {
                 return;
             }
         }
-        if ($this->isErrorEnabled()) {
+        if ($this->logger->isErrorEnabled()) {
             $this->writeLog(\LoggerLevel::getLevelError(), func_get_args(), ' - '. $this->getCaller(1, true));
         }
     }
@@ -289,56 +415,8 @@ class KLogger {
                 return;
             }
         }
-        if ($this->isFatalEnabled()) {
+        if ($this->logger->isFatalEnabled()) {
             $this->writeLog(\LoggerLevel::getLevelFatal(), func_get_args(), ' - '. $this->getCaller(1, true));
         }
-    }
-
-    /**
-     * Check whether this Logger is enabled for the TRACE Level.
-     * @return boolean
-     */
-    public function isTraceEnabled() {
-        return $this->logger->isEnabledFor(\LoggerLevel::getLevelTrace());
-    }
-
-    /**
-     * Check whether this Logger is enabled for the DEBUG Level.
-     * @return boolean
-     */
-    public function isDebugEnabled() {
-        return $this->logger->isEnabledFor(\LoggerLevel::getLevelDebug());
-    }
-
-    /**
-     * Check whether this Logger is enabled for the INFO Level.
-     * @return boolean
-     */
-    public function isInfoEnabled() {
-        return $this->logger->isEnabledFor(\LoggerLevel::getLevelInfo());
-    }
-
-    /**
-     * Check whether this Logger is enabled for the WARN Level.
-     * @return boolean
-     */
-    public function isWarnEnabled() {
-        return $this->logger->isEnabledFor(\LoggerLevel::getLevelWarn());
-    }
-
-    /**
-     * Check whether this Logger is enabled for the ERROR Level.
-     * @return boolean
-     */
-    public function isErrorEnabled() {
-        return $this->logger->isEnabledFor(\LoggerLevel::getLevelError());
-    }
-
-    /**
-     * Check whether this Logger is enabled for the FATAL Level.
-     * @return boolean
-     */
-    public function isFatalEnabled() {
-        return $this->logger->isEnabledFor(\LoggerLevel::getLevelFatal());
     }
 }
