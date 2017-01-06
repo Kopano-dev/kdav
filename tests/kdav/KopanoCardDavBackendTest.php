@@ -7,7 +7,7 @@
 *
 * Created   :   27.12.2016
 *
-* Copyright 2016 Kopano b.v.
+* Copyright 2016 - 2017 Kopano b.v.
 *
 * This program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU Affero General Public License, version 3,
