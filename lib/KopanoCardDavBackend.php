@@ -30,9 +30,13 @@
 
 namespace Kopano\DAV;
 
+use \Sabre\VObject;
+
 class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
     private $logger;
     protected $kDavBackend;
+
+    const FILE_EXTENSION = '.vcf';
 
     public function __construct(KopanoDavBackend $kDavBackend) {
         $this->kDavBackend = $kDavBackend;
@@ -128,7 +132,20 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      */
     public function getCards($addressbookId) {
         $this->logger->trace("addressbookId: %s", $addressbookId);
-        return array();
+        $folder = $this->kDavBackend->GetMapiFolder($addressbookId);
+
+        $table = mapi_folder_getcontentstable($folder);
+        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME));
+
+        $result = [];
+        foreach($rows as $row) {
+            $obj = $this->getCard($addressbookId, bin2hex($row[PR_SOURCE_KEY]) . static::FILE_EXTENSION);
+            if (is_array($obj)) {
+                $result[] = $obj;
+            }
+        }
+        $this->logger->trace("found %d objects", count($result));
+        return $result;
     }
 
     /**
@@ -141,11 +158,38 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      *
      * @param mixed $addressBookId
      * @param string $cardUri
+     * @param ressource $mapifolder     optional mapifolder resource, used if avialable
      * @return array
      */
-    public function getCard($addressBookId, $cardUri) {
+    public function getCard($addressBookId, $cardUri, $mapifolder = null) {
         $this->logger->trace("addressBookId: %s - cardUri: %s", $addressBookId, $cardUri);
-        return array();
+
+        if (!$mapifolder) {
+            $mapifolder = $this->kDavBackend->GetMapiFolder($addressBookId);
+        }
+
+        $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($cardUri, static::FILE_EXTENSION);
+        $mapimessage = $this->kDavBackend->GetMapiMessageForId($addressBookId, $objectId, $mapifolder);
+        if (!$mapimessage) {
+            $this->logger->debug("Object NOT FOUND");
+            return null;
+        }
+
+        $realId = $this->kDavBackend->GetIdOfMapiMessage($mapimessage);
+         // TODO conversion from MAPI to vcard
+        $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME, PR_DISPLAY_NAME, PR_GIVEN_NAME));
+
+        $vcard = new VObject\Component\VCard();
+        $vcard->add("FN", $props[PR_GIVEN_NAME]);
+        $vcard->add("N", $props[PR_DISPLAY_NAME]);
+
+        $ret = array(
+            'id' => $realId,
+            'carddata' => $vcard->serialize(),
+            'uri' => $realId . static::FILE_EXTENSION,
+            'lastmodified' => $props[PR_LAST_MODIFICATION_TIME]
+        );
+        return $ret;
     }
 
     /**
