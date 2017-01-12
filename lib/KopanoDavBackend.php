@@ -279,4 +279,21 @@ class KopanoDavBackend {
         return null;
     }
 
+    /**
+     * Returns the objectId from an objectUri. It strips the file extension
+     * if it matches the passed one.
+     *
+     * @param string $objectUri
+     * @param string $extension
+     *
+     * @access public
+     * @return string
+     */
+    public function GetObjectIdFromObjectUri($objectUri, $extension) {
+        $extLength = strlen($extension);
+        if (substr($objectUri, -$extLength) === $extension) {
+            return substr($objectUri, 0, -$extLength);
+        }
+        return $objectUri;
+    }
 }

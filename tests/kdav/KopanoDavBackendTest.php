@@ -34,7 +34,7 @@ class KopanoDavBackendTest extends \PHPUnit_Framework_TestCase {
     protected $kDavBackend;
 
     public function setUp() {
-        $this->kDavBackend = new KopanoDavBackend(null);
+        $this->kDavBackend = new KopanoDavBackend();
     }
 
     public function tearDown() {
@@ -51,4 +51,29 @@ class KopanoDavBackendTest extends \PHPUnit_Framework_TestCase {
         $this->assertTrue(is_object($this->kDavBackend));
     }
 
+    /**
+     * Tests the GetObjectIdFromObjectUri function.
+     *
+     * @param   string  $objectUri
+     * @param   string  $extension
+     * @param   string  $expected
+     *
+     * @dataProvider ObjectUriProvider
+     *
+     * @access public
+     * @return void
+     *
+     */
+    public function testGetObjectIdFromObjectUri($objectUri, $extension, $expected) {
+        $this->assertEquals($expected, $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, $extension));
+    }
+
+    public function ObjectUriProvider() {
+        return [
+                ['1234.ics', '.ics', '1234'],               // ok, cut .ics
+                ['5678AF.vcf', '.vcf', '5678AF'],           // ok, cut .vcf
+                ['123400.vcf', '.ics', '123400.vcf'],       // different extension, return as is
+                ['1234.ics', '.vcf', '1234.ics']            // different extension, return as is
+        ];
+    }
 }

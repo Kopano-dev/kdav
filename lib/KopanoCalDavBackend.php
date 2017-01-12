@@ -45,6 +45,8 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
     private $logger;
     protected $kDavBackend;
 
+    const FILE_EXTENSION = '.ics';
+
     public function __construct(KopanoDavBackend $kDavBackend) {
         $this->kDavBackend = $kDavBackend;
         $this->logger = KLogger::GetLogger('cal');
@@ -148,7 +150,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
         $result = [];
         foreach($rows as $row) {
             // at the end, the calendar objects might have a different ID, but $this->getCalendarObject() is able to handle the PR_SOURCE_KEY
-            $obj = $this->getCalendarObject($calendarId, bin2hex($row[PR_SOURCE_KEY]).'.ics', $folder);
+            $obj = $this->getCalendarObject($calendarId, bin2hex($row[PR_SOURCE_KEY]) . static::FILE_EXTENSION, $folder);
             if (is_array($obj)) {
                 $result[] = $obj;
             }
@@ -182,7 +184,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
             $mapifolder = $this->kDavBackend->GetMapiFolder($calendarId);
         }
 
-        $objectId = $this->getObjectIdFromObjectUri($objectUri);
+        $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, static::FILE_EXTENSION);
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId, $mapifolder);
         if (!$mapimessage) {
             $this->logger->debug("Object NOT FOUND");
@@ -200,7 +202,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
 
         $r = [
                 'id'            => $realId,
-                'uri'           => $realId . ".ics",
+                'uri'           => $realId . static::FILE_EXTENSION,
                 'etag'          => '"' . $props[PR_LAST_MODIFICATION_TIME] . '"',
                 'lastmodified'  => $props[PR_LAST_MODIFICATION_TIME],
                 'calendarid'    => $calendarId,
@@ -232,7 +234,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
     function createCalendarObject($calendarId, $objectUri, $calendarData) {
         $this->logger->trace("calendarId: %s - objectUri: %s - calendarData: %s", $calendarId, $objectUri, $calendarData);
 
-        $objectId = $this->getObjectIdFromObjectUri($objectUri);
+        $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, static::FILE_EXTENSION);
         $store = $this->kDavBackend->GetStore();
 
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
@@ -266,7 +268,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
     function updateCalendarObject($calendarId, $objectUri, $calendarData) {
         $this->logger->trace("calendarId: %s - objectUri: %s - calendarData: %s", $calendarId, $objectUri, $calendarData);
 
-        $objectId = $this->getObjectIdFromObjectUri($objectUri);
+        $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, static::FILE_EXTENSION);
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId);
         return $this->setData($mapimessage, $calendarData);
     }
@@ -300,25 +302,11 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
         $this->logger->trace("calendarId: %s - objectUri: %s", $calendarId, $objectUri);
 
         $mapifolder = $this->kDavBackend->GetMapiFolder($calendarId);
-        $objectId = $this->getObjectIdFromObjectUri($objectUri);
+        $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, static::FILE_EXTENSION);
 
         // to delete we need the PR_ENTRYID of the message
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId, $mapifolder);
         $props = mapi_getprops($mapimessage, array(PR_ENTRYID));
         mapi_folder_deletemessages($mapifolder, array($props[PR_ENTRYID]));
-    }
-
-    /**
-     * Returns the objectId from an objectUri.
-     *
-     * @param string $objectUri
-     *
-     * @access protected
-     * @return string
-     */
-    protected function getObjectIdFromObjectUri($objectUri) {
-        // TODO we should do more tests here
-        // cut off '.ics' from the end
-        return substr($objectUri, 0, -4);
     }
 }
