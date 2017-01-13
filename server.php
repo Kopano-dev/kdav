@@ -36,7 +36,7 @@ require __DIR__ . '/vendor/autoload.php';
 
 // Configure & create main logger
 KLogger::configure(__DIR__ . '/log4php.xml');
-$logger = KLogger::GetLogger('main');
+$logger = new KLogger('main');
 
 // don't log any Sabre asset requests (images etc)
 if (isset($_REQUEST['sabreAction']) && $_REQUEST['sabreAction'] == 'asset') {
@@ -50,12 +50,12 @@ $logger->debug('KDAV version %s', KDAV_VERSION);
 $logger->debug('SabreDAV version %s',\Sabre\DAV\Version::VERSION);
 
 
-$kdavBackend = new KopanoDavBackend();
+$kdavBackend = new KopanoDavBackend(new KLogger(('dav')));
 $authBackend = new AuthBasicBackend($kdavBackend);
 $authBackend->setRealm(SABRE_AUTH_REALM);
 $principalBackend = new PrincipalsBackend($kdavBackend);
-$kCarddavBackend   = new KopanoCardDavBackend($kdavBackend);
-$kCaldavBackend   = new KopanoCalDavBackend($kdavBackend);
+$kCarddavBackend   = new KopanoCardDavBackend($kdavBackend, new KLogger('card'));
+$kCaldavBackend   = new KopanoCalDavBackend($kdavBackend, new KLogger('cal'));
 
 // Setting up the directory tree
 $nodes = array(

@@ -31,12 +31,38 @@
 namespace Kopano\DAV;
 
 class KopanoCardDavBackendTest extends \PHPUnit_Framework_TestCase {
+    private $kDavBackendMock;
+    private $kCardDavBackend;
 
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see PHPUnit_Framework_TestCase::setUp()
+     */
+    protected function setUp() {
+        $kloggerMock = $this->getMockBuilder(KLogger::class)->disableOriginalConstructor()->getMock();
+        $this->kDavBackendMock = $this->getMockBuilder(KopanoDavBackend::class)->disableOriginalConstructor()->getMock();
+        $this->kCardDavBackend = new KopanoCardDavBackend($this->kDavBackendMock, $kloggerMock);
+    }
+
+    /**
+     *
+     * {@inheritDoc}
+     * @see PHPUnit_Framework_TestCase::tearDown()
+     */
+    protected function tearDown() {
+        $this->kCardDavBackend = null;
+        $this->kDavBackendMock = null;
+    }
+
+    /**
+     * Tests if the constructor is created without errors.
+     *
+     * @access public
+     * @return void
+     */
     public function testConstruct() {
-        $kDavBackendMock = $this->getMockBuilder(KopanoDavBackend::class)
-                     ->setMethods()
-                     ->getMock();
-        $kCardDavBackend = new KopanoCardDavBackend($kDavBackendMock);
-        $this->assertTrue(is_object($kCardDavBackend));
+        $this->assertTrue(is_object($this->kCardDavBackend));
     }
 }

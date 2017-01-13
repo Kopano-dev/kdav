@@ -47,9 +47,9 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
 
     const FILE_EXTENSION = '.ics';
 
-    public function __construct(KopanoDavBackend $kDavBackend) {
+    public function __construct(KopanoDavBackend $kDavBackend, KLogger $klogger) {
         $this->kDavBackend = $kDavBackend;
-        $this->logger = KLogger::GetLogger('cal');
+        $this->logger = $klogger;
     }
 
     /**

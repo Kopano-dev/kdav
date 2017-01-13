@@ -35,8 +35,8 @@ class KopanoDavBackend {
     protected $store;
     protected $user;
 
-    public function __construct() {
-        $this->logger = KLogger::GetLogger('dav');
+    public function __construct(KLogger $klogger) {
+        $this->logger = $klogger;
     }
 
     /**

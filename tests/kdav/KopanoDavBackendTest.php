@@ -33,11 +33,22 @@ namespace Kopano\DAV;
 class KopanoDavBackendTest extends \PHPUnit_Framework_TestCase {
     protected $kDavBackend;
 
-    public function setUp() {
-        $this->kDavBackend = new KopanoDavBackend();
+    /**
+     *
+     * {@inheritDoc}
+     * @see PHPUnit_Framework_TestCase::setUp()
+     */
+    protected function setUp() {
+        $kloggerMock = $this->getMockBuilder(KLogger::class)->disableOriginalConstructor()->getMock();
+        $this->kDavBackend = new KopanoDavBackend($kloggerMock);
     }
 
-    public function tearDown() {
+    /**
+     *
+     * {@inheritDoc}
+     * @see PHPUnit_Framework_TestCase::tearDown()
+     */
+    protected function tearDown() {
         $this->kDavBackend = null;
     }
 
@@ -68,6 +79,12 @@ class KopanoDavBackendTest extends \PHPUnit_Framework_TestCase {
         $this->assertEquals($expected, $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, $extension));
     }
 
+    /**
+     * Provides data for testGetObjectIdFromObjectUri.
+     *
+     * @access public
+     * @return array
+     */
     public function ObjectUriProvider() {
         return [
                 ['1234.ics', '.ics', '1234'],               // ok, cut .ics

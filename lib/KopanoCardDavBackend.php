@@ -38,9 +38,9 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
 
     const FILE_EXTENSION = '.vcf';
 
-    public function __construct(KopanoDavBackend $kDavBackend) {
+    public function __construct(KopanoDavBackend $kDavBackend, KLogger $klogger) {
         $this->kDavBackend = $kDavBackend;
-        $this->logger = KLogger::GetLogger('card');
+        $this->logger = $klogger;
     }
 
     /**
