@@ -96,6 +96,6 @@ $server->exec();
 $logger->LogOutgoing($server->httpResponse);
 
 $logger->debug("httpcode='%s' memory='%s/%s' time='%ss'",
-                http_response_code(), Utils::FormatBytes(memory_get_peak_usage(false)), Utils::FormatBytes(memory_get_peak_usage(true)),
+                http_response_code(), $logger->FormatBytes(memory_get_peak_usage(false)), $logger->FormatBytes(memory_get_peak_usage(true)),
                 number_format(microtime(true) - $_SERVER["REQUEST_TIME_FLOAT"], 2));
 $logger->debug('------------------ End');

@@ -51,7 +51,7 @@ class KopanoDavBackend {
     public function Logon($user, $pass) {
         $this->logger->trace('%s / password', $user);
 
-        if (Utils::CheckMapiExtVersion('7.2.0')) {
+        if ($this->checkMapiExtVersion('7.2.0')) {
             $kdavVersion = 'KopanoDav' . @constant('KDAV_VERSION');
             $userAgent = "unknown"; // TODO get user agent
             $this->session = @mapi_logon_zarafa($user, $pass, MAPI_SERVER, null, null, 0, $kdavVersion, $userAgent);
@@ -199,7 +199,7 @@ class KopanoDavBackend {
          * If it's a sourcekey, we can open the message directly.
          * If it's a UID, we:
          *   - search PROP_APPTTSREF with this value AND/OR
-         *   - search PROP_GOID with the encapsulated value (Utils::GetOLUidFromICalUid())
+         *   - search PROP_GOID with the encapsulated value ($this->getOLUidFromICalUid())
          * If it's a GOID, we search PROP_GOID directly
          */
         $properties = getPropIdsFromStrings($this->store, ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
@@ -207,14 +207,14 @@ class KopanoDavBackend {
         $entryid = false;
 
         // an encoded vCal-uid or directly an UUID
-        if (Utils::IsEncodedVcalUid($id) || Utils::IsValidUUID($id)) {
-            $uid = Utils::GetICalUidFromOLUid($id);
+        if ($this->isEncodedVcalUid($id) || $this->isValidUUID($id)) {
+            $uid = $this->getICalUidFromOLUid($id);
 
-            if (Utils::isOutlookUid($id)) {
+            if ($this->isOutlookUid($id)) {
                 $goid = $id;
             }
             else {
-                $goid = Utils::GetOLUidFromICalUid($id);
+                $goid = $this->getOLUidFromICalUid($id);
             }
 
             // build a restriction that looks for the id in PROP_APPTTSREF or encoded in PROP_GOID
@@ -237,7 +237,7 @@ class KopanoDavBackend {
             $this->logger->trace("Is vCal-Uid '%s' - GOID %s", $uid, $goid);
         }
         // it's a real OL UID (without vCal uid)
-        elseif (Utils::IsOutlookUid($id)) {
+        elseif ($this->isOutlookUid($id)) {
             // build a restriction that looks for the id in PROP_GOID
             $restriction =  Array(RES_PROPERTY,
                                     Array(RELOP => RELOP_EQ,
@@ -295,5 +295,113 @@ class KopanoDavBackend {
             return substr($objectUri, 0, -$extLength);
         }
         return $objectUri;
+    }
+
+    /**
+     * Checks if the PHP-MAPI extension is available and in a requested version.
+     *
+     * @param string    $version    the version to be checked ("6.30.10-18495", parts or build number)
+     *
+     * @access protected
+     * @return boolean installed version is superior to the checked string
+     */
+    protected function checkMapiExtVersion($version = "") {
+        if (!extension_loaded("mapi")) {
+            return false;
+        }
+        // compare build number if requested
+        if (preg_match('/^\d+$/', $version) && strlen($version) > 3) {
+            $vs = preg_split('/-/', phpversion("mapi"));
+            return ($version <= $vs[1]);
+        }
+        if (version_compare(phpversion("mapi"), $version) == -1){
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Parses and returns an ecoded vCal-Uid from an OL compatible GlobalObjectID.
+     *
+     * @param string    $olUid      an OL compatible GlobalObjectID as HEX
+     *
+     * @access protected
+     * @return string   the vCal-Uid if available in the olUid, else the original olUid
+     */
+    protected function getICalUidFromOLUid($olUid){
+        if (ctype_xdigit($olUid)) {
+            // get a binary representation of it
+            $icalUidBi = hex2bin($olUid);
+            // check if "vCal-Uid" is somewhere in outlookid case-insensitive
+            $icalUid = stristr($icalUidBi, "vCal-Uid");
+            if ($icalUid !== false) {
+                //get the length of the ical id - go back 4 position from where "vCal-Uid" was found
+                $begin = unpack("V", substr($icalUidBi, strlen($icalUid) * (-1) - 4, 4));
+                //remove "vCal-Uid" and packed "1" and use the ical id length
+                return substr($icalUid, 12, ($begin[1] - 13));
+            }
+        }
+        return $olUid;
+    }
+
+    /**
+     * Indicates if a given UID contains a vCal-Uid or not.
+     *
+     * @param string $uid (as hex)
+     *
+     * @access protected
+     * @return boolean
+     */
+    protected function isEncodedVcalUid($uid) {
+        return ctype_xdigit($uid) && stristr(hex2bin($uid), "vCal-Uid") !== false;
+    }
+
+    /**
+     * Indicates if a guiven UID is an OL GOID or not.
+     *
+     * @param string $uid
+     *
+     * @access protected
+     * @return boolean
+     */
+    protected static function isOutlookUid($uid) {
+        return 0 === stripos($uid, '040000008200E00074C5B7101A82E008');
+    }
+
+
+    /**
+     * Checks if it's a valid UUID as specified in RFC4122.
+     *
+     * @param string    $uuid
+     *
+     * @access protected
+     * @return boolean
+     */
+    protected function isValidUUID($uuid) {
+        return !!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $uuid);
+    }
+
+    /**
+     * Checks the given UID if it is an OL compatible GlobalObjectID.
+     * If not, the given UID is encoded inside the GlobalObjectID.
+     *
+     * @param string    $icalUid    an appointment uid as HEX
+     *
+     * @access protected
+     * @return string   an OL compatible GlobalObjectID
+     *
+     */
+    protected function getOLUidFromICalUid($icalUid) {
+        if (strlen($icalUid) <= 64) {
+            $len = 13 + strlen($icalUid);
+            $OLUid = pack("V", $len);
+            $OLUid .= "vCal-Uid";
+            $OLUid .= pack("V", 1);
+            $OLUid .= $icalUid;
+            return "040000008200E00074C5B7101A82E0080000000000000000000000000000000000000000". bin2hex($OLUid). "00";
+        }
+        else
+            return $icalUid;
     }
 }
