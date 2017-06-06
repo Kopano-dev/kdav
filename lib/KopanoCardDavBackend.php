@@ -176,20 +176,25 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
         }
 
         $realId = $this->kDavBackend->GetIdOfMapiMessage($mapimessage);
-         // TODO conversion from MAPI to vcard
-        $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME, PR_DISPLAY_NAME, PR_GIVEN_NAME));
 
-        $vcard = new VObject\Component\VCard();
-        $vcard->add("FN", $props[PR_GIVEN_NAME]);
-        $vcard->add("N", $props[PR_DISPLAY_NAME]);
+        $session = $this->kDavBackend->GetSession();
+        $ab = $this->kDavBackend->GetAddressBook();
 
-        $ret = array(
+        $vcf = mapi_mapitovcf($session, $ab, $mapimessage, array());
+        $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
+        $r = [
             'id' => $realId,
-            'carddata' => $vcard->serialize(),
             'uri' => $realId . static::FILE_EXTENSION,
-            'lastmodified' => $props[PR_LAST_MODIFICATION_TIME]
-        );
-        return $ret;
+            'etag' => '"' . $props[PR_LAST_MODIFICATION_TIME] . '"',
+            'lastmodified'  => $props[PR_LAST_MODIFICATION_TIME],
+            'carddata' => $vcf,
+            'size' => strlen($vcf),
+            'addressbookid' => $addressBookId,
+        ];
+
+        $this->logger->trace("returned data id: %s - size: %d - etag: %s", $r['id'], $r['size'], $r['etag']);
+
+        return $r;
     }
 
     /**
@@ -236,7 +241,18 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      */
     public function createCard($addressBookId, $cardUri, $cardData) {
         $this->logger->trace("addressBookId: %s - cardUri: %s - cardData: %s", $addressBookId, $cardUri, $cardData);
-        return null;
+
+        $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($cardUri, static::FILE_EXTENSION);
+        $store = $this->kDavBackend->GetStore();
+
+        $folder = $this->kDavBackend->GetMapiFolder($addressBookId);
+        $mapimessage = mapi_folder_createmessage($folder);
+
+        // we save the objectId in PROP_APPTTSREF so we find it by this id
+        $properties = getPropIdsFromStrings($store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
+        mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
+
+        return $this->setData($mapimessage, $cardData);
     }
 
     /**
@@ -266,8 +282,26 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      */
     public function updateCard($addressBookId, $cardUri, $cardData) {
         $this->logger->trace("addressBookId: %s - cardUri: %s - cardData: %s", $addressBookId, $cardUri, $cardData);
+
+        $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($cardUri, static::FILE_EXTENSION);
+        $mapimessage = $this->kDavBackend->GetMapiMessageForId($addressBookId, $objectId);
+        return $this->setData($mapimessage, $cardData);
+    }
+
+    private function setData($mapimessage, $vcf) {
+        $this->logger->trace("mapimessage: %s - vcf: %s", $mapimessage, $vcf);
+        $store = $this->kDavBackend->GetStore();
+        $session = $this->kDavBackend->GetSession();
+
+        $ok = mapi_vcftomapi($session, $store, $mapimessage, $vcf);
+        if ($ok) {
+            mapi_message_savechanges($mapimessage);
+            $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
+            return $props[PR_LAST_MODIFICATION_TIME];
+        }
         return null;
     }
+
 
     /**
      * Deletes a card
@@ -278,6 +312,12 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      */
     public function deleteCard($addressBookId, $cardUri) {
         $this->logger->trace("addressBookId: %s - cardUri: %s", $addressBookId, $cardUri);
-        return false;
+        $mapifolder = $this->kDavBackend->GetMapiFolder($addressBookId);
+        $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($cardUri, static::FILE_EXTENSION);
+
+        // to delete we need the PR_ENTRYID of the message
+        $mapimessage = $this->kDavBackend->GetMapiMessageForId($addressBookId, $objectId, $mapifolder);
+        $props = mapi_getprops($mapimessage, array(PR_ENTRYID));
+        mapi_folder_deletemessages($mapifolder, array($props[PR_ENTRYID]));
     }
 }
