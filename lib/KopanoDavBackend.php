@@ -262,6 +262,14 @@ class KopanoDavBackend {
             $entryid = mapi_msgstore_entryidfromsourcekey($this->store, hex2bin($calendarId), hex2bin($id));
             $restriction = false;
         }
+        else {
+            $restriction = Array(RES_PROPERTY,
+                                 Array(RELOP => RELOP_EQ,
+                                       ULPROPTAG => $properties["appttsref"],
+                                       VALUE => $id
+                                     )
+                );
+        }
 
         // find the message if we have a restriction
         if ($restriction) {
