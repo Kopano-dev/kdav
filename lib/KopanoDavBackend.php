@@ -59,9 +59,18 @@ class KopanoDavBackend {
         else {
             $this->session = @mapi_logon_zarafa($user, $pass, MAPI_SERVER, null, null, 0);
         }
-        // FIXME error handling if logon fails
+
+        if (!$this->session) {
+            $this->logger->info("Auth: ERROR - logon failed for user %s", $user);
+            return false;
+        }
 
         $this->store = GetDefaultStore($this->session);
+        if (!$this->store) {
+            $this->logger->info("Auth: ERROR - unable to open store for %s", $user);
+            return false;
+        }
+
         $this->user = $user;
         $this->logger->debug("Auth: OK - user %s - store %s - session %s", $this->user, $this->store, $this->session);
         return true;
