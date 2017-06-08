@@ -99,6 +99,13 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      */
     public function createAddressBook($principalUri, $url, array $properties) {
         $this->logger->trace("principalUri: %s - url: %s - properties: %s", $principalUri, $url, $properties);
+        $store = $this->kDavBackend->GetStore();
+        $tmp = mapi_getprops($store, array(PR_IPM_SUBTREE_ENTRYID));
+        $folder = mapi_msgstore_openentry($store, $tmp[PR_IPM_SUBTREE_ENTRYID]);
+        // handle $properties['{DAV:}displayname']
+        $newfolder = mapi_folder_createfolder($folder, $url, $displayname);
+        mapi_setprops($newfolder, array(PR_CONTAINER_CLASS => 'IPF.Contact'));
+        return $url;
     }
 
     /**
@@ -109,6 +116,11 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      */
     public function deleteAddressBook($addressBookId) {
         $this->logger->trace("addressBookId: %s", $addressBookId);
+        $store = $this->kDavBackend->GetStore();
+        $folder = $this->kDavBackend->GetMapiFolder($addressBookId);
+        $tmp = mapi_getprops($folder, array(PR_ENTRYID, PR_PARENT_ENTRYID));
+        $parentfolder = mapi_msgstore_openentry($store, $tmp[PR_PARENT_ENTRYID]);
+        mapi_folder_deletefolder($parentfolder, $tmp[PR_ENTRYID]);
     }
 
     /**
