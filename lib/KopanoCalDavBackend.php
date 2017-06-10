@@ -94,7 +94,8 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      */
     function createCalendar($principalUri, $calendarUri, array $properties) {
         $this->logger->trace("principalUri: %s - calendarUri: %s - properties: %s", $principalUri, $calendarUri, $properties);
-       // TODO implement, returns id
+        // TODO Add displayname
+        return $this->kDavBackend->CreateFolder($calendarUri, "IPF.Appointment", "");
     }
 
     /**
@@ -105,7 +106,8 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      */
     function deleteCalendar($calendarId) {
         $this->logger->trace("calendarId: %s", $calendarId);
-        // TODO implement
+        $success = $this->kDavBackend->DeleteFolder($calendarId);
+        // TODO evaluate $success
     }
 
     /**

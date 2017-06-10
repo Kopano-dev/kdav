@@ -88,6 +88,42 @@ class KopanoDavBackend {
     }
 
     /**
+     * Create a folder with MAPI class
+     *
+     * @param string $url
+     * @param string $class
+     * @param string $displayname
+     * @return String
+     */
+    public function CreateFolder($url, $class, $displayname) {
+        $props = mapi_getprops($this->store, array(PR_IPM_SUBTREE_ENTRYID));
+        $folder = mapi_msgstore_openentry($this->store, $props[PR_IPM_SUBTREE_ENTRYID]);
+        $newfolder = mapi_folder_createfolder($folder, $url, $displayname);
+        mapi_setprops($newfolder, array(PR_CONTAINER_CLASS => $class));
+        return $url;
+    }
+
+    /**
+     * Delete a folder with MAPI class
+     *
+     * @param string $url
+     * @param string $class
+     * @param string $displayname
+     * @return bool
+     */
+    public function DeleteFolder($url) {
+        $folder = $this->GetMapiFolder($url);
+        if (!$folder)
+            return false;
+
+        $props = mapi_getprops($folder, array(PR_ENTRYID, PR_PARENT_ENTRYID));
+        $parentfolder = mapi_msgstore_openentry($this->store, $props[PR_PARENT_ENTRYID]);
+        mapi_folder_deletefolder($parentfolder, $props[PR_ENTRYID]);
+
+        return true;
+    }
+
+    /**
      * Returns a list of folders for a MAPI class.
      *
      * @param string $principalUri
