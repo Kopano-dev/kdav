@@ -2,7 +2,7 @@
 
 Implements CalDAV and CardDAV support for Kopano 8.3 or newer.
 
-As DAV server [SabreDAV](http://http://sabre.io/dav) is used.
+As DAV server [SabreDAV](http://sabre.io/dav) is used.
 
 ## License
 
