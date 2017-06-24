@@ -46,6 +46,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
     protected $kDavBackend;
 
     const FILE_EXTENSION = '.ics';
+    const CONTAINER_CLASS = 'IPF.Appointment';
 
     public function __construct(KopanoDavBackend $kDavBackend, KLogger $klogger) {
         $this->kDavBackend = $kDavBackend;
@@ -78,7 +79,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      */
     function getCalendarsForUser($principalUri) {
         $this->logger->trace("principalUri: %s", $principalUri);
-        return $this->kDavBackend->GetFolders($principalUri, 'IPF.Appointment');
+        return $this->kDavBackend->GetFolders($principalUri, static::CONTAINER_CLASS);
     }
 
     /**
@@ -95,7 +96,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
     function createCalendar($principalUri, $calendarUri, array $properties) {
         $this->logger->trace("principalUri: %s - calendarUri: %s - properties: %s", $principalUri, $calendarUri, $properties);
         // TODO Add displayname
-        return $this->kDavBackend->CreateFolder($calendarUri, "IPF.Appointment", "");
+        return $this->kDavBackend->CreateFolder($calendarUri, static::CONTAINER_CLASS, "");
     }
 
     /**

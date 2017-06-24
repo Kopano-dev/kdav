@@ -37,6 +37,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
     protected $kDavBackend;
 
     const FILE_EXTENSION = '.vcf';
+    const CONTAINER_CLASS = 'IPF.Contact';
 
     public function __construct(KopanoDavBackend $kDavBackend, KLogger $klogger) {
         $this->kDavBackend = $kDavBackend;
@@ -62,7 +63,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      */
     public function getAddressBooksForUser($principalUri) {
         $this->logger->trace("principalUri: %s", $principalUri);
-        return $this->kDavBackend->GetFolders($principalUri, 'IPF.Contact');
+        return $this->kDavBackend->GetFolders($principalUri, static::CONTAINER_CLASS);
     }
 
     /**
@@ -100,7 +101,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
     public function createAddressBook($principalUri, $url, array $properties) {
         $this->logger->trace("principalUri: %s - url: %s - properties: %s", $principalUri, $url, $properties);
         // TODO Add displayname
-        return $this->kDavBackend->CreateFolder($url, "IPF.Contact", "");
+        return $this->kDavBackend->CreateFolder($url, static::CONTAINER_CLASS, "");
     }
 
     /**
