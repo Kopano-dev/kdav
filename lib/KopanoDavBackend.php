@@ -59,9 +59,18 @@ class KopanoDavBackend {
         else {
             $this->session = @mapi_logon_zarafa($user, $pass, MAPI_SERVER, null, null, 0);
         }
-        // FIXME error handling if logon fails
+
+        if (!$this->session) {
+            $this->logger->info("Auth: ERROR - logon failed for user %s", $user);
+            return false;
+        }
 
         $this->store = GetDefaultStore($this->session);
+        if (!$this->store) {
+            $this->logger->info("Auth: ERROR - unable to open store for %s", $user);
+            return false;
+        }
+
         $this->user = $user;
         $this->logger->debug("Auth: OK - user %s - store %s - session %s", $this->user, $this->store, $this->session);
         return true;
@@ -76,6 +85,42 @@ class KopanoDavBackend {
     public function GetUser() {
         $this->logger->trace($this->user);
         return $this->user;
+    }
+
+    /**
+     * Create a folder with MAPI class
+     *
+     * @param string $url
+     * @param string $class
+     * @param string $displayname
+     * @return String
+     */
+    public function CreateFolder($url, $class, $displayname) {
+        $props = mapi_getprops($this->store, array(PR_IPM_SUBTREE_ENTRYID));
+        $folder = mapi_msgstore_openentry($this->store, $props[PR_IPM_SUBTREE_ENTRYID]);
+        $newfolder = mapi_folder_createfolder($folder, $url, $displayname);
+        mapi_setprops($newfolder, array(PR_CONTAINER_CLASS => $class));
+        return $url;
+    }
+
+    /**
+     * Delete a folder with MAPI class
+     *
+     * @param string $url
+     * @param string $class
+     * @param string $displayname
+     * @return bool
+     */
+    public function DeleteFolder($url) {
+        $folder = $this->GetMapiFolder($url);
+        if (!$folder)
+            return false;
+
+        $props = mapi_getprops($folder, array(PR_ENTRYID, PR_PARENT_ENTRYID));
+        $parentfolder = mapi_msgstore_openentry($this->store, $props[PR_PARENT_ENTRYID]);
+        mapi_folder_deletefolder($parentfolder, $props[PR_ENTRYID]);
+
+        return true;
     }
 
     /**
@@ -252,6 +297,14 @@ class KopanoDavBackend {
             $this->logger->trace("Is PR_SOURCE_KEY %s", $id);
             $entryid = mapi_msgstore_entryidfromsourcekey($this->store, hex2bin($calendarId), hex2bin($id));
             $restriction = false;
+        }
+        else {
+            $restriction = Array(RES_PROPERTY,
+                                 Array(RELOP => RELOP_EQ,
+                                       ULPROPTAG => $properties["appttsref"],
+                                       VALUE => $id
+                                     )
+                );
         }
 
         // find the message if we have a restriction

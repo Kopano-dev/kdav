@@ -68,12 +68,15 @@ class PrincipalsBackend implements \Sabre\DAVACL\PrincipalBackend\BackendInterfa
      * @return array
      */
     public function getPrincipalByPath($path) {
+        $userinfo = @mapi_zarafa_getuser_by_name($this->kdavBackend->GetStore(), $this->kdavBackend->GetUser());
+        $emailaddress = (isset($userinfo['emailaddress']) && $userinfo['emailaddress']) ? $userinfo['emailaddress'] : false;
+        $fullname = (isset($userinfo['fullname']) && $userinfo['fullname']) ? $userinfo['fullname'] : false;
+
         return array(
                     'id'                                        => $this->kdavBackend->GetUser(),
                     'uri'                                       => 'principals/' . $this->kdavBackend->GetUser(),
-                    // TODO get Displayname and email address from GAB
-                    '{DAV:}displayname'                         => 'Hardcoded Testuser',
-                    '{http://sabredav.org/ns}email-address'     => 'kdavtest@kopano.io',
+                    '{DAV:}displayname'                         => $fullname,
+                    '{http://sabredav.org/ns}email-address'     => $emailaddress,
                     // TODO 'vcardurl' shoudl be set, see here: http://sabre.io/dav/principals/
             );
     }
