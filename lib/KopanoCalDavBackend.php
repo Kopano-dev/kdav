@@ -30,7 +30,7 @@
 
 namespace Kopano\DAV;
 
-class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
+class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implements \Sabre\CalDAV\Backend\SchedulingSupport {
     /*
      * TODO IMPLEMENT
      *
@@ -311,5 +311,72 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId, $mapifolder);
         $props = mapi_getprops($mapimessage, array(PR_ENTRYID));
         mapi_folder_deletemessages($mapifolder, array($props[PR_ENTRYID]));
+    }
+
+    /**
+     * Return a single scheduling object.
+     *
+     * TODO: Add implementation.
+     *
+     * @param string $principalUri
+     * @param string $objectUri
+     * @return array
+     */
+    public function getSchedulingObject($principalUri, $objectUri) {
+        $this->logger->trace("principalUri: %s - objectUri: %s", $principalUri, $objectUri);
+        return array();
+    }
+
+    /**
+     * Returns scheduling objects for the principal URI.
+     *
+     * TODO: Add implementation.
+     *
+     * @param string $principalUri
+     * @return array
+     */
+    public function getSchedulingObjects($principalUri) {
+        $this->logger->trace("principalUri: %s", $principalUri);
+        return array();
+    }
+
+    /**
+     * Delete scheduling object.
+     *
+     * TODO: Add implementation.
+     *
+     * @param string $principalUri
+     * @param string $objectUri
+     * @return void
+     */
+    public function deleteSchedulingObject($principalUri, $objectUri) {
+        $this->logger->trace("principalUri: %s - objectUri: %s", $principalUri, $objectUri);
+    }
+
+    /**
+     * Create a new scheduling object.
+     *
+     * TODO: Add implementation.
+     *
+     * @param string $principalUri
+     * @param string $objectUri
+     * @param string $objectData
+     * @return void
+     */
+    public function createSchedulingObject($principalUri, $objectUri, $objectData) {
+        $this->logger->trace("principalUri: %s - objectUri: %s - objectData: %s", $principalUri, $objectUri, $objectData);
+    }
+
+    /**
+     * Return CTAG for scheduling inbox.
+     *
+     * TODO: Add implementation.
+     *
+     * @param string $principalUri
+     * @return string
+     */
+    public function getSchedulingInboxCtag($principalUri) {
+        $this->logger->trace("principalUri: %s", $principalUri);
+        return "empty";
     }
 }

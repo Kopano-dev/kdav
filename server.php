@@ -82,6 +82,12 @@ $aclPlugin = new \Sabre\DAVACL\Plugin();
 $aclPlugin->allowUnauthenticatedAccess = false;
 $server->addPlugin($aclPlugin);
 
+$schedulePlugin = new KopanoSchedulePlugin($kdavBackend, new KLogger('schedule'));
+$server->addPlugin($schedulePlugin);
+
+$imipPlugin = new KopanoIMipPlugin($kdavBackend, new KLogger('imip'));
+$server->addPlugin($imipPlugin);
+
 $server->addPlugin(new \Sabre\CardDAV\Plugin());
 
 // TODO: do we need $caldavPlugin for anything?
