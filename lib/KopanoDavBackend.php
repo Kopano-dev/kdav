@@ -151,6 +151,7 @@ class KopanoDavBackend {
                 'id'           => bin2hex($row[PR_SOURCE_KEY]),
                 'uri'          => $row[PR_DISPLAY_NAME],
                 'principaluri' => $principalUri,
+                '{DAV:}displayname' => $row[PR_DISPLAY_NAME],
             ];
         }
         $this->logger->trace('found %d folders', count($folders));
