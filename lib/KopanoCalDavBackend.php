@@ -54,6 +54,26 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
     }
 
     /**
+     * Publish free/busy information.
+     *
+     * Uses the FreeBusyPublish class to publish the information
+     * about free/busy status.
+     *
+     * @param mapiresource $calendar
+     * @return void
+     */
+    private function UpdateFB($calendar) {
+        $session = $this->kDavBackend->GetSession();
+        $store = $this->kDavBackend->GetStore();
+        $weekUnixTime = 7 * 24 * 60 * 60;
+        $start = time() - $weekUnixTime;
+        $range = strtotime("+7 weeks");
+        $storeProps = mapi_getprops($store, array(PR_MAILBOX_OWNER_ENTRYID));
+        $pub = new \FreeBusyPublish($session, $store, $calendar, $storeProps[PR_MAILBOX_OWNER_ENTRYID]);
+        $pub->publishFB($start, $range);
+    }
+
+    /**
      * Returns a list of calendars for a principal.
      *
      * Every project is an array with the following keys:
@@ -247,7 +267,9 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         $properties = getPropIdsFromStrings($store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
         mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
 
-        return $this->setData($mapimessage, $calendarData);
+        $retval = $this->setData($mapimessage, $calendarData);
+        $this->UpdateFB($folder);
+        return $retval;
     }
 
     /**
@@ -272,8 +294,11 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         $this->logger->trace("calendarId: %s - objectUri: %s - calendarData: %s", $calendarId, $objectUri, $calendarData);
 
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, static::FILE_EXTENSION);
+        $folder = $this->kDavBackend->GetMapiFolder($calendarId);
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId);
-        return $this->setData($mapimessage, $calendarData);
+        $retval = $this->setData($mapimessage, $calendarData);
+        $this->UpdateFB($folder);
+        return $retval;
     }
 
     private function setData($mapimessage, $ics) {
@@ -284,12 +309,12 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         $ab = $this->kDavBackend->GetAddressBook();
 
         $ok = mapi_icaltomapi($session, $store, $ab, $mapimessage, $ics, false);
-        if ($ok) {
-            mapi_message_savechanges($mapimessage);
-            $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
-            return $props[PR_LAST_MODIFICATION_TIME];
+        if (!$ok) {
+            return null;
         }
-        return null;
+        mapi_message_savechanges($mapimessage);
+        $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
+        return $props[PR_LAST_MODIFICATION_TIME];
     }
 
     /**
