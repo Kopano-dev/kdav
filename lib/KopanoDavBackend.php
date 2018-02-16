@@ -130,8 +130,8 @@ class KopanoDavBackend {
      * @param string $class
      * @return array
      */
-    public function GetFolders($principalUri, $class) {
-        $this->logger->trace("principal '%s', class '%s'", $principalUri, $class);
+    public function GetFolders($principalUri, $classes) {
+        $this->logger->trace("principal '%s', classes '%s'", $principalUri, $classes);
         $folders = array();
 
         // TODO limit the output to subfolders of the principalUri?
@@ -139,12 +139,14 @@ class KopanoDavBackend {
         $rootfolder = mapi_msgstore_openentry($this->store);
         $hierarchy =  mapi_folder_gethierarchytable($rootfolder, CONVENIENT_DEPTH);
         // TODO also filter hidden folders
-        $restriction = array(RES_PROPERTY, array(RELOP => RELOP_EQ, ULPROPTAG => PR_CONTAINER_CLASS, VALUE => $class));
-
-        mapi_table_restrict($hierarchy, $restriction);
+        $restrictions = array();
+        foreach ($classes as $class) {
+		    $restrictions[] = array(RES_PROPERTY, array(RELOP => RELOP_EQ, ULPROPTAG => PR_CONTAINER_CLASS, VALUE => $class));
+        }
+        mapi_table_restrict($hierarchy, array(RES_OR, $restrictions));
 
         // TODO how to handle hierarchies?
-        $rows = mapi_table_queryallrows($hierarchy, array(PR_DISPLAY_NAME, PR_ENTRYID, PR_SOURCE_KEY, PR_PARENT_SOURCE_KEY, PR_CONTAINER_CLASS));
+        $rows = mapi_table_queryallrows($hierarchy, array(PR_DISPLAY_NAME, PR_ENTRYID, PR_SOURCE_KEY, PR_PARENT_SOURCE_KEY));
 
         foreach ($rows as $row) {
             $folders[] = [
