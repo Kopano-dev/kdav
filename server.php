@@ -88,6 +88,7 @@ $server->addPlugin($schedulePlugin);
 $imipPlugin = new KopanoIMipPlugin($kdavBackend, new KLogger('imip'));
 $server->addPlugin($imipPlugin);
 
+$server->addPlugin(new \Sabre\CalDAV\ICSExportPlugin());
 $server->addPlugin(new \Sabre\CardDAV\Plugin());
 
 // TODO: do we need $caldavPlugin for anything?

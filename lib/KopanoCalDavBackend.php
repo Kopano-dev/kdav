@@ -38,7 +38,6 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
      * SubscriptionSupport,
      * SchedulingSupport,
      * SharingSupport,
-     * add ICSExportPlugin to allow export of an ics file (all events in one file)
      *
      */
 
