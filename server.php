@@ -95,7 +95,9 @@ $server->addPlugin(new \Sabre\CardDAV\Plugin());
 $caldavPlugin = new \Sabre\CalDAV\Plugin();
 $server->addPlugin($caldavPlugin);
 
-$server->addPlugin(new \Sabre\DAV\Browser\Plugin(false));
+if (DEVELOPER_MODE) {
+    $server->addPlugin(new \Sabre\DAV\Browser\Plugin(false));
+}
 
 $server->exec();
 
