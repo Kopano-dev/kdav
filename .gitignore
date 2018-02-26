@@ -2,3 +2,6 @@
 /.buildpath
 /composer.lock
 /composer.phar
+installer
+phpunit
+mapi
