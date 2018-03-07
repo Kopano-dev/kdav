@@ -45,7 +45,7 @@ class KopanoIMipPlugin extends \Sabre\CalDAV\Schedule\IMipPlugin {
      * @return void
      */
 
-    function schedule(\Sabre\VObject\ITip\Message $iTipMessage) {
+    public function schedule(\Sabre\VObject\ITip\Message $iTipMessage) {
         $this->logger->trace("method: %s - recipient: %s - significantChange: %d - scheduleStatus: %s - message: %s", $iTipMessage->method, $iTipMessage->recipient, $iTipMessage->significantChange, $iTipMessage->scheduleStatus, $iTipMessage->message->serialize());
 
         if (!$iTipMessage->significantChange) {
