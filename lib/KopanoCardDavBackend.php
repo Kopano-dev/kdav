@@ -301,7 +301,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
 
         $ok = mapi_vcftomapi($session, $store, $mapimessage, $vcf);
         if ($ok) {
-            mapi_message_savechanges($mapimessage);
+            mapi_savechanges($mapimessage);
             $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
             return $props[PR_LAST_MODIFICATION_TIME];
         }

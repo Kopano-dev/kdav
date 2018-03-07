@@ -312,7 +312,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         if (!$ok) {
             return null;
         }
-        mapi_message_savechanges($mapimessage);
+        mapi_savechanges($mapimessage);
         $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
         return $props[PR_LAST_MODIFICATION_TIME];
     }
