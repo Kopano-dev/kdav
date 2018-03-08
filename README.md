@@ -19,8 +19,7 @@ How this code will be distributed to end users still needs to be defined.
 
 You should have got a checkout/clone of the repository. 
 The main dependencies are installed via Composer, to do that, first get composer itself.
-Installation instructions can be found 
-[here](https://getcomposer.org/doc/00-intro.md#installation-linux-unix-osx).
+Installation instructions can be found [here](https://getcomposer.org/doc/00-intro.md#installation-linux-unix-osx).
 It's recommend to install composer locally into the main kDAV directory. Then just do
 
 ```
@@ -34,10 +33,10 @@ Adjust `MAPI_SERVER` to connect to your Kopano instance.
 The `DAV_ROOT_URI` parameter must match your webserver configuration,
 so that it points directly to the `server.php` file.
 
-This is the simplest way to setup, running at port 8843:
+This is the simplest way to setup, running at port 8123:
 
 ```
-<VirtualHost *:80>
+<VirtualHost *:8123>
     DocumentRoot /your-kdav-working-directory/kdav
     ServerName develop.local
 
@@ -99,6 +98,12 @@ good idea to configure logrotate utility for kdav.log e.g by creating
 }
 ```
 
+kopano-sabredav also requires some php mapi classes. The easiest is to just symlink them:
+
+```
+ln -s /usr/share/kopano/php/mapi /var/www/kdav
+```
+
 ## Access
 
 As first step, point your webbrowser to:
@@ -135,10 +140,10 @@ ln -s vendor/phpunit/phpunit/phpunit phpunit
 
 In order to run all the test execute:
 ```
-phpunit tests
+./phpunit tests
 ```
 
 In order to run a specific test pass a path to a specific class as parameter, e.g.:
 ```
-phpunit tests\KopanoCardDavBackendTest
+./phpunit tests\KopanoCardDavBackendTest
 ```
