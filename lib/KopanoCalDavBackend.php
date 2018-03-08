@@ -30,7 +30,7 @@
 
 namespace Kopano\DAV;
 
-class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
+class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implements \Sabre\CalDAV\Backend\SchedulingSupport {
     /*
      * TODO IMPLEMENT
      *
@@ -38,7 +38,6 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * SubscriptionSupport,
      * SchedulingSupport,
      * SharingSupport,
-     * add ICSExportPlugin to allow export of an ics file (all events in one file)
      *
      */
 
@@ -47,10 +46,31 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
 
     const FILE_EXTENSION = '.ics';
     const CONTAINER_CLASS = 'IPF.Appointment';
+    const CONTAINER_CLASSES = array('IPF.Appointment', 'IPF.Task');
 
     public function __construct(KopanoDavBackend $kDavBackend, KLogger $klogger) {
         $this->kDavBackend = $kDavBackend;
         $this->logger = $klogger;
+    }
+
+    /**
+     * Publish free/busy information.
+     *
+     * Uses the FreeBusyPublish class to publish the information
+     * about free/busy status.
+     *
+     * @param mapiresource $calendar
+     * @return void
+     */
+    private function UpdateFB($calendar) {
+        $session = $this->kDavBackend->GetSession();
+        $store = $this->kDavBackend->GetStore();
+        $weekUnixTime = 7 * 24 * 60 * 60;
+        $start = time() - $weekUnixTime;
+        $range = strtotime("+7 weeks");
+        $storeProps = mapi_getprops($store, array(PR_MAILBOX_OWNER_ENTRYID));
+        $pub = new \FreeBusyPublish($session, $store, $calendar, $storeProps[PR_MAILBOX_OWNER_ENTRYID]);
+        $pub->publishFB($start, $range);
     }
 
     /**
@@ -77,9 +97,9 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @param string $principalUri
      * @return array
      */
-    function getCalendarsForUser($principalUri) {
+    public function getCalendarsForUser($principalUri) {
         $this->logger->trace("principalUri: %s", $principalUri);
-        return $this->kDavBackend->GetFolders($principalUri, static::CONTAINER_CLASS);
+        return $this->kDavBackend->GetFolders($principalUri, static::CONTAINER_CLASSES);
     }
 
     /**
@@ -93,7 +113,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @param array $properties
      * @return string
      */
-    function createCalendar($principalUri, $calendarUri, array $properties) {
+    public function createCalendar($principalUri, $calendarUri, array $properties) {
         $this->logger->trace("principalUri: %s - calendarUri: %s - properties: %s", $principalUri, $calendarUri, $properties);
         // TODO Add displayname
         return $this->kDavBackend->CreateFolder($calendarUri, static::CONTAINER_CLASS, "");
@@ -105,7 +125,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @param string $calendarId
      * @return void
      */
-    function deleteCalendar($calendarId) {
+    public function deleteCalendar($calendarId) {
         $this->logger->trace("calendarId: %s", $calendarId);
         $success = $this->kDavBackend->DeleteFolder($calendarId);
         // TODO evaluate $success
@@ -142,7 +162,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @param string $calendarId
      * @return array
      */
-    function getCalendarObjects($calendarId) {
+    public function getCalendarObjects($calendarId) {
         $this->logger->trace("calendarId: %s", $calendarId);
 
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
@@ -180,7 +200,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @param ressource $mapifolder     optional mapifolder resource, used if avialable
      * @return array|null
      */
-    function getCalendarObject($calendarId, $objectUri, $mapifolder = null) {
+    public function getCalendarObject($calendarId, $objectUri, $mapifolder = null) {
         $this->logger->trace("calendarId: %s - objectUri: %s - mapifolder: %s", $calendarId, $objectUri, $mapifolder);
 
         if (!$mapifolder) {
@@ -234,7 +254,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @param string $calendarData
      * @return string|null
      */
-    function createCalendarObject($calendarId, $objectUri, $calendarData) {
+    public function createCalendarObject($calendarId, $objectUri, $calendarData) {
         $this->logger->trace("calendarId: %s - objectUri: %s - calendarData: %s", $calendarId, $objectUri, $calendarData);
 
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, static::FILE_EXTENSION);
@@ -247,7 +267,9 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
         $properties = getPropIdsFromStrings($store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
         mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
 
-        return $this->setData($mapimessage, $calendarData);
+        $retval = $this->setData($mapimessage, $calendarData);
+        $this->UpdateFB($folder);
+        return $retval;
     }
 
     /**
@@ -268,12 +290,15 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @param string $calendarData
      * @return string|null
      */
-    function updateCalendarObject($calendarId, $objectUri, $calendarData) {
+    public function updateCalendarObject($calendarId, $objectUri, $calendarData) {
         $this->logger->trace("calendarId: %s - objectUri: %s - calendarData: %s", $calendarId, $objectUri, $calendarData);
 
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, static::FILE_EXTENSION);
+        $folder = $this->kDavBackend->GetMapiFolder($calendarId);
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId);
-        return $this->setData($mapimessage, $calendarData);
+        $retval = $this->setData($mapimessage, $calendarData);
+        $this->UpdateFB($folder);
+        return $retval;
     }
 
     private function setData($mapimessage, $ics) {
@@ -284,12 +309,12 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
         $ab = $this->kDavBackend->GetAddressBook();
 
         $ok = mapi_icaltomapi($session, $store, $ab, $mapimessage, $ics, false);
-        if ($ok) {
-            mapi_message_savechanges($mapimessage);
-            $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
-            return $props[PR_LAST_MODIFICATION_TIME];
+        if (!$ok) {
+            return null;
         }
-        return null;
+        mapi_savechanges($mapimessage);
+        $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
+        return $props[PR_LAST_MODIFICATION_TIME];
     }
 
     /**
@@ -301,7 +326,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
      * @param string $objectUri
      * @return void
      */
-    function deleteCalendarObject($calendarId, $objectUri) {
+    public function deleteCalendarObject($calendarId, $objectUri) {
         $this->logger->trace("calendarId: %s - objectUri: %s", $calendarId, $objectUri);
 
         $mapifolder = $this->kDavBackend->GetMapiFolder($calendarId);
@@ -311,5 +336,72 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend {
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId, $mapifolder);
         $props = mapi_getprops($mapimessage, array(PR_ENTRYID));
         mapi_folder_deletemessages($mapifolder, array($props[PR_ENTRYID]));
+    }
+
+    /**
+     * Return a single scheduling object.
+     *
+     * TODO: Add implementation.
+     *
+     * @param string $principalUri
+     * @param string $objectUri
+     * @return array
+     */
+    public function getSchedulingObject($principalUri, $objectUri) {
+        $this->logger->trace("principalUri: %s - objectUri: %s", $principalUri, $objectUri);
+        return array();
+    }
+
+    /**
+     * Returns scheduling objects for the principal URI.
+     *
+     * TODO: Add implementation.
+     *
+     * @param string $principalUri
+     * @return array
+     */
+    public function getSchedulingObjects($principalUri) {
+        $this->logger->trace("principalUri: %s", $principalUri);
+        return array();
+    }
+
+    /**
+     * Delete scheduling object.
+     *
+     * TODO: Add implementation.
+     *
+     * @param string $principalUri
+     * @param string $objectUri
+     * @return void
+     */
+    public function deleteSchedulingObject($principalUri, $objectUri) {
+        $this->logger->trace("principalUri: %s - objectUri: %s", $principalUri, $objectUri);
+    }
+
+    /**
+     * Create a new scheduling object.
+     *
+     * TODO: Add implementation.
+     *
+     * @param string $principalUri
+     * @param string $objectUri
+     * @param string $objectData
+     * @return void
+     */
+    public function createSchedulingObject($principalUri, $objectUri, $objectData) {
+        $this->logger->trace("principalUri: %s - objectUri: %s - objectData: %s", $principalUri, $objectUri, $objectData);
+    }
+
+    /**
+     * Return CTAG for scheduling inbox.
+     *
+     * TODO: Add implementation.
+     *
+     * @param string $principalUri
+     * @return string
+     */
+    public function getSchedulingInboxCtag($principalUri) {
+        $this->logger->trace("principalUri: %s", $principalUri);
+        return "empty";
     }
 }

@@ -30,7 +30,6 @@
 namespace Kopano\DAV;
 
 define('PSETID_Kopano_CalDav',                  makeguid("{77536087-CB81-4dc9-9958-EA4C51BE3486}"));
-define('PSETID_Meeting',                        makeguid("{6ED8DA90-450B-101B-98DA-00AA003F1305}"));
 
 class MapiProps {
     const PROP_APPTTSREF = "PT_STRING8:PSETID_Kopano_CalDav:0x0025"; // dispidApptTsRef
