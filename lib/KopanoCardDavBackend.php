@@ -257,8 +257,10 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
         // we save the objectId in PROP_APPTTSREF so we find it by this id
         $properties = getPropIdsFromStrings($store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
         mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
-
-        return $this->setData($mapimessage, $cardData);
+        $retval = $this->setData($mapimessage, $cardData);
+        if (!$retval)
+            return null;
+        return '"' . $retval . '"';
     }
 
     /**
@@ -291,7 +293,10 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
 
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($cardUri, static::FILE_EXTENSION);
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($addressBookId, $objectId);
-        return $this->setData($mapimessage, $cardData);
+        $retval = $this->setData($mapimessage, $cardData);
+        if (!$retval)
+            return null;
+        return '"' . $retval . '"';
     }
 
     private function setData($mapimessage, $vcf) {

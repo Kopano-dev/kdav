@@ -268,8 +268,10 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
 
         $retval = $this->setData($mapimessage, $calendarData);
+        if (!$retval)
+            return null;
         $this->UpdateFB($folder);
-        return $retval;
+        return '"' . $retval . '"';
     }
 
     /**
@@ -297,8 +299,10 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId);
         $retval = $this->setData($mapimessage, $calendarData);
+        if (!$retval)
+            return null;
         $this->UpdateFB($folder);
-        return $retval;
+        return '"' . $retval . '"';
     }
 
     private function setData($mapimessage, $ics) {
