@@ -139,14 +139,19 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
     public function getCards($addressbookId) {
         $this->logger->trace("addressbookId: %s", $addressbookId);
         $folder = $this->kDavBackend->GetMapiFolder($addressbookId);
-
+        $properties = getPropIdsFromStrings($this->kDavBackend->GetStore(), ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
         $table = mapi_folder_getcontentstable($folder);
-        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME));
+        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, $properties['appttsref'], $properties['goid']));
 
         $result = [];
         foreach($rows as $row) {
-            // TODO: Handle PROP_APPTTSREF, PROP_GOID
-            $realId = bin2hex($row[PR_SOURCE_KEY]);
+            if (isset($row[$properties['appttsref']]))
+                $realId = $row[$properties['appttsref']];
+            else if (isset($row[$properties['goid']]))
+                $realId = bin2hex($row[$properties['goid']]);
+            else
+                $realId = bin2hex($row[PR_SOURCE_KEY]);
+
             $result[] = [
                 'id'            => $realId,
                 'uri'           => $realId . static::FILE_EXTENSION,
