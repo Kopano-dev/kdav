@@ -178,7 +178,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
                 $realId = $row[$properties['appttsref']];
             elseif (isset($row[$properties['goid']]))
                 $realId = bin2hex($row[$properties['goid']]);
-            if(strlen($realId) == 0)
+            if (strlen($realId) == 0)
                 $realId = bin2hex($row[PR_SOURCE_KEY]);
 
             $result[] = [
