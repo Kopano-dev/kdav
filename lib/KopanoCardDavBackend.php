@@ -145,10 +145,15 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
 
         $result = [];
         foreach($rows as $row) {
-            $obj = $this->getCard($addressbookId, bin2hex($row[PR_SOURCE_KEY]) . static::FILE_EXTENSION);
-            if (is_array($obj)) {
-                $result[] = $obj;
-            }
+            // TODO: Handle PROP_APPTTSREF, PROP_GOID
+            $realId = bin2hex($row[PR_SOURCE_KEY]);
+            $result[] = [
+                'id'            => $realId,
+                'uri'           => $realId . static::FILE_EXTENSION,
+                'etag'          => '"' . $row[PR_LAST_MODIFICATION_TIME] . '"',
+                'lastmodified'  => $row[PR_LAST_MODIFICATION_TIME],
+                'addressbookid' => $addressbookId,
+            ];
         }
         $this->logger->trace("found %d objects", count($result));
         return $result;
