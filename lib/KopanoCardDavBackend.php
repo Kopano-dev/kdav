@@ -145,11 +145,12 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
 
         $result = [];
         foreach($rows as $row) {
+            $realId = "";
             if (isset($row[$properties['appttsref']]))
                 $realId = $row[$properties['appttsref']];
-            else if (isset($row[$properties['goid']]))
+            elseif (isset($row[$properties['goid']]))
                 $realId = bin2hex($row[$properties['goid']]);
-            else
+            if (strlen($realId) == 0)
                 $realId = bin2hex($row[PR_SOURCE_KEY]);
 
             $result[] = [
