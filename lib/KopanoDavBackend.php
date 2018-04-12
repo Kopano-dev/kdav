@@ -51,15 +51,9 @@ class KopanoDavBackend {
     public function Logon($user, $pass) {
         $this->logger->trace('%s / password', $user);
 
-        if ($this->checkMapiExtVersion('7.2.0')) {
-            $kdavVersion = 'KopanoDav' . @constant('KDAV_VERSION');
-            $userAgent = "unknown"; // TODO get user agent
-            $this->session = @mapi_logon_zarafa($user, $pass, MAPI_SERVER, null, null, 0, $kdavVersion, $userAgent);
-        }
-        else {
-            $this->session = @mapi_logon_zarafa($user, $pass, MAPI_SERVER, null, null, 0);
-        }
-
+        $kdavVersion = 'KopanoDav' . @constant('KDAV_VERSION');
+        $userAgent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : 'unknown';
+        $this->session = mapi_logon_zarafa($user, $pass, MAPI_SERVER, null, null, 1, $kdavVersion, $userAgent);
         if (!$this->session) {
             $this->logger->info("Auth: ERROR - logon failed for user %s", $user);
             return false;
