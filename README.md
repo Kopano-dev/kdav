@@ -126,7 +126,7 @@ The IP address can of course also be used.
 
 ## Reporting and Development
 
-Atm development is done on z-hub.io in the KDAV project.
+Development is done at https://stash.kopano.io/projects/KC/repos/kdav/browse. If you have any feedback or questions please open up a topic at the [Kopano forum](https://forum.kopano.io/category/13/development).
 
 ### PHPUnit tests
 
@@ -147,3 +147,7 @@ In order to run a specific test pass a path to a specific class as parameter, e.
 ```
 ./phpunit tests\KopanoCardDavBackendTest
 ```
+
+## Known Issues
+
+- there were reports about syncing on Apple devices taking a very long time. (Tests with Thunderbird/Lighning showed a fast sync)
