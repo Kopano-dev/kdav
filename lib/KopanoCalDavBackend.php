@@ -169,7 +169,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
 
         $properties = getPropIdsFromStrings($this->kDavBackend->GetStore(), ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
         $table = mapi_folder_getcontentstable($folder);
-        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, $properties['appttsref'], $properties['goid']));
+        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, PR_MESSAGE_SIZE, $properties['appttsref'], $properties['goid']));
 
         $result = [];
         foreach($rows as $row) {
@@ -187,6 +187,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
                 'etag'          => '"' . $row[PR_LAST_MODIFICATION_TIME] . '"',
                 'lastmodified'  => $row[PR_LAST_MODIFICATION_TIME],
                 'calendarid'    => $calendarId,
+                'size'          => $row[PR_MESSAGE_SIZE], // only approximation
             ];
         }
         $this->logger->trace("found %d objects", count($result));
