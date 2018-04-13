@@ -140,9 +140,12 @@ class KopanoDavBackend {
         mapi_table_restrict($hierarchy, array(RES_OR, $restrictions));
 
         // TODO how to handle hierarchies?
-        $rows = mapi_table_queryallrows($hierarchy, array(PR_DISPLAY_NAME, PR_ENTRYID, PR_SOURCE_KEY, PR_PARENT_SOURCE_KEY));
+        $rows = mapi_table_queryallrows($hierarchy, array(PR_DISPLAY_NAME, PR_ENTRYID, PR_SOURCE_KEY, PR_PARENT_SOURCE_KEY, PR_FOLDER_TYPE));
 
         foreach ($rows as $row) {
+            if ($row[PR_FOLDER_TYPE] == FOLDER_SEARCH)
+                continue;
+
             $folders[] = [
                 'id'           => bin2hex($row[PR_SOURCE_KEY]),
                 'uri'          => $row[PR_DISPLAY_NAME],
