@@ -139,6 +139,7 @@ class KLogger {
                 $dom = new \DOMDocument('1.0', 'utf-8');
                 $dom->preserveWhiteSpace = false;
                 $dom->formatOutput = true;
+                $dom->recover = true;
                 $dom->loadXML($inputBody);
                 $inputBody = $dom->saveXML();
             }
@@ -167,6 +168,7 @@ class KLogger {
                 $dom = new \DOMDocument('1.0', 'utf-8');
                 $dom->preserveWhiteSpace = false;
                 $dom->formatOutput = true;
+                $dom->recover = true;
                 $dom->loadXML($outputBody);
                 $outputBody = $dom->saveXML();
             }
