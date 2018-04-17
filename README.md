@@ -48,6 +48,10 @@ This is the simplest way to setup, running at port 8123:
     CustomLog ${APACHE_LOG_DIR}/access.log combined
 
     RewriteEngine On
+    # redirect well-known url http://sabre.io/dav/service-discovery/
+    # (redirect may need to be done to the absolute external url)
+    RewriteRule ^/.well-known/carddav$ / [R]
+    RewriteRule ^/.well-known/caldav$ / [R]
     # This makes every request go to server.php
     RewriteRule ^/(.*)$ /server.php [L]
 
@@ -63,6 +67,10 @@ This is the simplest way to setup, running at port 8123:
 
     # SabreDAV is not compatible with mbstring function overloading
     php_flag mbstring.func_overload off
+
+    # set higher limits by default
+    php_value memory_limit 256M
+    php_value max_execution_time 259200
 
 </VirtualHost>
 ```
