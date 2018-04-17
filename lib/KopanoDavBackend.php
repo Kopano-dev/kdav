@@ -140,7 +140,7 @@ class KopanoDavBackend {
         mapi_table_restrict($hierarchy, array(RES_OR, $restrictions));
 
         // TODO how to handle hierarchies?
-        $rows = mapi_table_queryallrows($hierarchy, array(PR_DISPLAY_NAME, PR_ENTRYID, PR_SOURCE_KEY, PR_PARENT_SOURCE_KEY, PR_FOLDER_TYPE));
+        $rows = mapi_table_queryallrows($hierarchy, array(PR_DISPLAY_NAME, PR_ENTRYID, PR_SOURCE_KEY, PR_PARENT_SOURCE_KEY, PR_FOLDER_TYPE, PR_LOCAL_COMMIT_TIME_MAX));
 
         foreach ($rows as $row) {
             if ($row[PR_FOLDER_TYPE] == FOLDER_SEARCH)
@@ -151,6 +151,7 @@ class KopanoDavBackend {
                 'uri'          => $row[PR_DISPLAY_NAME],
                 'principaluri' => $principalUri,
                 '{DAV:}displayname' => $row[PR_DISPLAY_NAME],
+                '{http://calendarserver.org/ns/}getctag' => isset($row[PR_LOCAL_COMMIT_TIME_MAX]) ? strval($row[PR_LOCAL_COMMIT_TIME_MAX]) : '0000000000',
             ];
         }
         $this->logger->trace('found %d folders', count($folders));
