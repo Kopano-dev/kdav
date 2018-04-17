@@ -215,23 +215,6 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
     }
 
     /**
-     * Returns a list of cards.
-     *
-     * This method should work identical to getCard, but instead return all the
-     * cards in the list as an array.
-     *
-     * If the backend supports this, it may allow for some speed-ups.
-     *
-     * @param mixed $addressBookId
-     * @param array $uris
-     * @return array
-     */
-    public function getMultipleCards($addressBookId, array $uris) {
-        $this->logger->trace("addressBookId: %s - uris: %s", $addressBookId, $uris);
-        return array();
-    }
-
-    /**
      * Creates a new card.
      *
      * The addressbook id will be passed as the first argument. This is the
