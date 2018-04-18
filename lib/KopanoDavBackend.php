@@ -142,17 +142,26 @@ class KopanoDavBackend {
         // TODO how to handle hierarchies?
         $rows = mapi_table_queryallrows($hierarchy, array(PR_DISPLAY_NAME, PR_ENTRYID, PR_SOURCE_KEY, PR_PARENT_SOURCE_KEY, PR_FOLDER_TYPE, PR_LOCAL_COMMIT_TIME_MAX));
 
+        $rootprops = mapi_getprops($rootfolder, array(PR_IPM_CONTACT_ENTRYID));
         foreach ($rows as $row) {
             if ($row[PR_FOLDER_TYPE] == FOLDER_SEARCH)
                 continue;
 
-            $folders[] = [
+            $folder = [
                 'id'           => bin2hex($row[PR_SOURCE_KEY]),
                 'uri'          => $row[PR_DISPLAY_NAME],
                 'principaluri' => $principalUri,
                 '{DAV:}displayname' => $row[PR_DISPLAY_NAME],
                 '{http://calendarserver.org/ns/}getctag' => isset($row[PR_LOCAL_COMMIT_TIME_MAX]) ? strval($row[PR_LOCAL_COMMIT_TIME_MAX]) : '0000000000',
             ];
+
+            // ensure default contacts folder is put first, some clients
+            // i.e. Apple Addressbook only supports one contact folder,
+            // therefore it is desired that folder is the default one.
+            if (in_array("IPF.Contact", $classes) && $row[PR_ENTRYID] == $rootprops[PR_IPM_CONTACT_ENTRYID])
+                array_unshift($folders, $folder);
+            else
+                array_push($folders, $folder);
         }
         $this->logger->trace('found %d folders', count($folders));
         return $folders;
