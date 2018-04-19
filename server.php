@@ -78,7 +78,7 @@ $server->httpResponse->addHeader('X-KDAV-Version', KDAV_VERSION);
 // log the incoming request (only if authenticated)
 $logger->LogIncoming($server->httpRequest);
 
-$aclPlugin = new \Sabre\DAVACL\Plugin();
+$aclPlugin = new DAVACL();
 $aclPlugin->allowUnauthenticatedAccess = false;
 $server->addPlugin($aclPlugin);
 
