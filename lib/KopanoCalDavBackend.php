@@ -164,32 +164,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
      */
     public function getCalendarObjects($calendarId) {
         $this->logger->trace("calendarId: %s", $calendarId);
-
-        $folder = $this->kDavBackend->GetMapiFolder($calendarId);
-
-        $properties = getPropIdsFromStrings($this->kDavBackend->GetStore(), ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
-        $table = mapi_folder_getcontentstable($folder);
-        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, PR_MESSAGE_SIZE, $properties['appttsref'], $properties['goid']));
-
-        $result = [];
-        foreach($rows as $row) {
-            $realId = "";
-            if (isset($row[$properties['appttsref']]))
-                $realId = $row[$properties['appttsref']];
-            elseif (isset($row[$properties['goid']]))
-                $realId = bin2hex($row[$properties['goid']]);
-            if (strlen($realId) == 0)
-                $realId = bin2hex($row[PR_SOURCE_KEY]);
-
-            $result[] = [
-                'id'            => $realId,
-                'uri'           => $realId . static::FILE_EXTENSION,
-                'etag'          => '"' . $row[PR_LAST_MODIFICATION_TIME] . '"',
-                'lastmodified'  => $row[PR_LAST_MODIFICATION_TIME],
-                'calendarid'    => $calendarId,
-                'size'          => $row[PR_MESSAGE_SIZE], // only approximation
-            ];
-        }
+        $result = $this->kDavBackend->GetObjects($calendarId, static::FILE_EXTENSION);
         $this->logger->trace("found %d objects", count($result));
         return $result;
     }

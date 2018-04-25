@@ -168,6 +168,49 @@ class KopanoDavBackend {
     }
 
     /**
+     * Returns a list of objects for a folder given by the id.
+     *
+     * @param string $id
+     * @param string $fileExtension
+     * @return array
+     */
+    public function GetObjects($id, $fileExtension) {
+        $folder = $this->GetMapiFolder($id);
+        $properties = getPropIdsFromStrings($this->store, ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
+        $table = mapi_folder_getcontentstable($folder);
+        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, PR_MESSAGE_SIZE, $properties['appttsref'], $properties['goid']));
+
+        $results = [];
+        foreach($rows as $row) {
+            $realId = "";
+            if (isset($row[$properties['appttsref']])) {
+                $realId = $row[$properties['appttsref']];
+            } elseif (isset($row[$properties['goid']])) {
+                $realId = bin2hex($row[$properties['goid']]);
+            }
+            if (strlen($realId) == 0) {
+                $realId = bin2hex($row[PR_SOURCE_KEY]);
+            }
+
+            $result = [
+                'id'            => $realId,
+                'uri'           => $realId . $fileExtension,
+                'etag'          => '"' . $row[PR_LAST_MODIFICATION_TIME] . '"',
+                'lastmodified'  => $row[PR_LAST_MODIFICATION_TIME],
+                'size'          => $row[PR_MESSAGE_SIZE], // only approximation
+            ];
+
+            if ($fileExtension == KopanoCalDavBackend::FILE_EXTENSION) {
+                $result['calendarid'] = $id;
+            } elseif ($fileExtension == KopanoCardDavBackend::FILE_EXTENSION) {
+                $result['addressbookid'] = $id;
+            }
+            $results[] = $result;
+        }
+        return $results;
+    }
+
+    /**
      * Returns a mapi folder resource for a folderid (PR_SOURCE_KEY).
      *
      * @param string $folderid
