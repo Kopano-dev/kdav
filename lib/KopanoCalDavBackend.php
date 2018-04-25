@@ -242,17 +242,9 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
      */
     public function createCalendarObject($calendarId, $objectUri, $calendarData) {
         $this->logger->trace("calendarId: %s - objectUri: %s - calendarData: %s", $calendarId, $objectUri, $calendarData);
-
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, static::FILE_EXTENSION);
-        $store = $this->kDavBackend->GetStore();
-
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
-        $mapimessage = mapi_folder_createmessage($folder);
-
-        // we save the objectId in PROP_APPTTSREF so we find it by this id
-        $properties = getPropIdsFromStrings($store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
-        mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
-
+        $mapimessage = $this->kDavBackend->CreateObject($folder, $objectId);
         $retval = $this->setData($mapimessage, $calendarData);
         if (!$retval)
             return null;

@@ -219,16 +219,9 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      */
     public function createCard($addressBookId, $cardUri, $cardData) {
         $this->logger->trace("addressBookId: %s - cardUri: %s - cardData: %s", $addressBookId, $cardUri, $cardData);
-
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($cardUri, static::FILE_EXTENSION);
-        $store = $this->kDavBackend->GetStore();
-
         $folder = $this->kDavBackend->GetMapiFolder($addressBookId);
-        $mapimessage = mapi_folder_createmessage($folder);
-
-        // we save the objectId in PROP_APPTTSREF so we find it by this id
-        $properties = getPropIdsFromStrings($store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
-        mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
+        $mapimessage = $this->kDavBackend->CreateObject($addressBookId, $objectId);
         $retval = $this->setData($mapimessage, $cardData);
         if (!$retval)
             return null;

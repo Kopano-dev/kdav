@@ -211,6 +211,21 @@ class KopanoDavBackend {
     }
 
     /**
+     * Create the object and set appttsref.
+     *
+     * @param string $folder
+     * @param string $objectId
+     * @return mapiresource
+     */
+    public function CreateObject($folder, $objectId) {
+        $mapimessage = mapi_folder_createmessage($folder);
+        // we save the objectId in PROP_APPTTSREF so we find it by this id
+        $properties = getPropIdsFromStrings($this->store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
+        mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
+        return $mapimessage;
+    }
+
+    /**
      * Returns a mapi folder resource for a folderid (PR_SOURCE_KEY).
      *
      * @param string $folderid
