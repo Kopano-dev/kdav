@@ -164,32 +164,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
      */
     public function getCalendarObjects($calendarId) {
         $this->logger->trace("calendarId: %s", $calendarId);
-
-        $folder = $this->kDavBackend->GetMapiFolder($calendarId);
-
-        $properties = getPropIdsFromStrings($this->kDavBackend->GetStore(), ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
-        $table = mapi_folder_getcontentstable($folder);
-        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, PR_MESSAGE_SIZE, $properties['appttsref'], $properties['goid']));
-
-        $result = [];
-        foreach($rows as $row) {
-            $realId = "";
-            if (isset($row[$properties['appttsref']]))
-                $realId = $row[$properties['appttsref']];
-            elseif (isset($row[$properties['goid']]))
-                $realId = bin2hex($row[$properties['goid']]);
-            if (strlen($realId) == 0)
-                $realId = bin2hex($row[PR_SOURCE_KEY]);
-
-            $result[] = [
-                'id'            => $realId,
-                'uri'           => $realId . static::FILE_EXTENSION,
-                'etag'          => '"' . $row[PR_LAST_MODIFICATION_TIME] . '"',
-                'lastmodified'  => $row[PR_LAST_MODIFICATION_TIME],
-                'calendarid'    => $calendarId,
-                'size'          => $row[PR_MESSAGE_SIZE], // only approximation
-            ];
-        }
+        $result = $this->kDavBackend->GetObjects($calendarId, static::FILE_EXTENSION);
         $this->logger->trace("found %d objects", count($result));
         return $result;
     }
@@ -267,17 +242,9 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
      */
     public function createCalendarObject($calendarId, $objectUri, $calendarData) {
         $this->logger->trace("calendarId: %s - objectUri: %s - calendarData: %s", $calendarId, $objectUri, $calendarData);
-
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, static::FILE_EXTENSION);
-        $store = $this->kDavBackend->GetStore();
-
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
-        $mapimessage = mapi_folder_createmessage($folder);
-
-        // we save the objectId in PROP_APPTTSREF so we find it by this id
-        $properties = getPropIdsFromStrings($store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
-        mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
-
+        $mapimessage = $this->kDavBackend->CreateObject($folder, $objectId);
         $retval = $this->setData($mapimessage, $calendarData);
         if (!$retval)
             return null;

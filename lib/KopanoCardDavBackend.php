@@ -138,29 +138,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      */
     public function getCards($addressbookId) {
         $this->logger->trace("addressbookId: %s", $addressbookId);
-        $folder = $this->kDavBackend->GetMapiFolder($addressbookId);
-        $properties = getPropIdsFromStrings($this->kDavBackend->GetStore(), ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
-        $table = mapi_folder_getcontentstable($folder);
-        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, $properties['appttsref'], $properties['goid']));
-
-        $result = [];
-        foreach($rows as $row) {
-            $realId = "";
-            if (isset($row[$properties['appttsref']]))
-                $realId = $row[$properties['appttsref']];
-            elseif (isset($row[$properties['goid']]))
-                $realId = bin2hex($row[$properties['goid']]);
-            if (strlen($realId) == 0)
-                $realId = bin2hex($row[PR_SOURCE_KEY]);
-
-            $result[] = [
-                'id'            => $realId,
-                'uri'           => $realId . static::FILE_EXTENSION,
-                'etag'          => '"' . $row[PR_LAST_MODIFICATION_TIME] . '"',
-                'lastmodified'  => $row[PR_LAST_MODIFICATION_TIME],
-                'addressbookid' => $addressbookId,
-            ];
-        }
+        $result = $this->kDavBackend->GetObjects($addressbookId, static::FILE_EXTENSION);
         $this->logger->trace("found %d objects", count($result));
         return $result;
     }
@@ -241,16 +219,9 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
      */
     public function createCard($addressBookId, $cardUri, $cardData) {
         $this->logger->trace("addressBookId: %s - cardUri: %s - cardData: %s", $addressBookId, $cardUri, $cardData);
-
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($cardUri, static::FILE_EXTENSION);
-        $store = $this->kDavBackend->GetStore();
-
         $folder = $this->kDavBackend->GetMapiFolder($addressBookId);
-        $mapimessage = mapi_folder_createmessage($folder);
-
-        // we save the objectId in PROP_APPTTSREF so we find it by this id
-        $properties = getPropIdsFromStrings($store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
-        mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
+        $mapimessage = $this->kDavBackend->CreateObject($addressBookId, $objectId);
         $retval = $this->setData($mapimessage, $cardData);
         if (!$retval)
             return null;
