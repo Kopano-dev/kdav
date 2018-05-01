@@ -237,16 +237,45 @@ class KopanoDavBackend {
         return mapi_openaddressbook($this->session);
     }
 
+    public function GetMapiStore($username = null) {
+        $msgstorestable = mapi_getmsgstorestable($this->session);
+        $msgstores = mapi_table_queryallrows($msgstorestable, array(PR_DEFAULT_STORE, PR_ENTRYID, PR_MDB_PROVIDER));
+
+        foreach ($msgstores as $row) {
+            $defaultstore = $username == null && $row[PR_DEFAULT_STORE];
+            $publicstore = $username == 'public' && isset($row[PR_MDB_PROVIDER]) && $row[PR_MDB_PROVIDER] == KOPANO_STORE_PUBLIC_GUID;
+            if ($defaultstore || $publicstore) {
+                $storeentryid = $row[PR_ENTRYID];
+                break;
+            }
+        }
+
+        if (!$storeentryid) {
+            $this->logger->error("Unable to open store, username: %s", $username);
+            return false;
+        }
+
+        return mapi_openmsgstore($this->session, $storeentryid);
+}
+
+
     public function GetStore($storename) {
         $storename = str_replace('principals/', '', $storename);
         $this->logger->trace("storename %s", $storename);
         if ($storename == null || $storename === $this->GetUser()) {
-            $this->stores['default'] = GetDefaultStore($this->session);
+            $this->stores['default'] = $this->GetMapiStore();
             if (!$this->stores['default']) {
                 $this->logger->info("Auth: ERROR - unable to open store for %s", $user);
                 return false;
             }
             return $this->stores['default'];
+        } elseif ($storename == 'public') {
+            $this->stores['public'] = $this->GetMapiStore('public');
+            if (!$this->stores['public']) {
+                $this->logger->info("Auth: ERROR - unable to open store for %s", $user);
+                return false;
+            }
+            return $this->stores['public'];
         }
     }
 
