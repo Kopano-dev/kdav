@@ -242,7 +242,7 @@ class KopanoDavBackend {
         $msgstores = mapi_table_queryallrows($msgstorestable, array(PR_DEFAULT_STORE, PR_ENTRYID, PR_MDB_PROVIDER));
 
         foreach ($msgstores as $row) {
-            $defaultstore = $username == null && $row[PR_DEFAULT_STORE];
+            $defaultstore = $username == $this->GetUser() && $row[PR_DEFAULT_STORE];
             $publicstore = $username == 'public' && isset($row[PR_MDB_PROVIDER]) && $row[PR_MDB_PROVIDER] == KOPANO_STORE_PUBLIC_GUID;
             if ($defaultstore || $publicstore) {
                 $storeentryid = $row[PR_ENTRYID];
@@ -262,21 +262,22 @@ class KopanoDavBackend {
     public function GetStore($storename) {
         $storename = str_replace('principals/', '', $storename);
         $this->logger->trace("storename %s", $storename);
-        if ($storename == null || $storename === $this->GetUser()) {
-            $this->stores['default'] = $this->GetMapiStore();
-            if (!$this->stores['default']) {
-                $this->logger->info("Auth: ERROR - unable to open store for %s", $user);
-                return false;
-            }
-            return $this->stores['default'];
-        } elseif ($storename == 'public') {
-            $this->stores['public'] = $this->GetMapiStore('public');
-            if (!$this->stores['public']) {
-                $this->logger->info("Auth: ERROR - unable to open store for %s", $user);
-                return false;
-            }
-            return $this->stores['public'];
+
+        if ($storename == null) {
+            $storename = $this->GetUser();
         }
+
+        /* We already got the store */
+        if (isset($this->stores[$storename]) && $this->stores[$storename] != null) {
+            return $this->stores[$storename];
+        }
+
+        $this->stores[$storename] = $this->GetMapiStore($storename);
+        if (!$this->stores[$storename]) {
+            $this->logger->info("Auth: ERROR - unable to open store for %s", $storename);
+            return false;
+        }
+        return $this->stores[$storename];
     }
 
     public function GetStoreById($id) {
