@@ -241,13 +241,23 @@ class KopanoDavBackend {
         $msgstorestable = mapi_getmsgstorestable($this->session);
         $msgstores = mapi_table_queryallrows($msgstorestable, array(PR_DEFAULT_STORE, PR_ENTRYID, PR_MDB_PROVIDER));
 
+        $defaultstore = null;
+        $publicstore = null;
         foreach ($msgstores as $row) {
-            $defaultstore = $username == $this->GetUser() && $row[PR_DEFAULT_STORE];
-            $publicstore = $username == 'public' && isset($row[PR_MDB_PROVIDER]) && $row[PR_MDB_PROVIDER] == KOPANO_STORE_PUBLIC_GUID;
-            if ($defaultstore || $publicstore) {
-                $storeentryid = $row[PR_ENTRYID];
-                break;
-            }
+            if (isset($row[PR_DEFAULT_STORE]) && $row[PR_DEFAULT_STORE])
+                $defaultstore = $row[PR_ENTRYID];
+            if (isset($row[PR_MDB_PROVIDER]) && $row[PR_MDB_PROVIDER] == KOPANO_STORE_PUBLIC_GUID)
+                $publicstore = $row[PR_ENTRYID];
+        }
+
+        if ($username == $this->GetUser() && $defaultstore != null) {
+            return mapi_openmsgstore($this->session, $defaultstore);
+        } elseif ($username == 'public' && $publicstore != null) {
+            return mapi_openmsgstore($this->session, $publicstore);
+        } else {
+            $store = mapi_openmsgstore($this->session, $defaultstore);
+            $otherstore = mapi_msgstore_createentryid($store, $username);
+            return mapi_openmsgstore($this->session, $otherstore);
         }
 
         if (!$storeentryid) {
