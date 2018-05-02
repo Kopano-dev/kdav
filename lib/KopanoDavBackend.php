@@ -270,12 +270,13 @@ class KopanoDavBackend {
 
 
     public function GetStore($storename) {
-        $storename = str_replace('principals/', '', $storename);
-        $this->logger->trace("storename %s", $storename);
-
         if ($storename == null) {
             $storename = $this->GetUser();
+        } else {
+            $storename = str_replace('principals/', '', $storename);
         }
+        $this->logger->trace("storename %s", $storename);
+
 
         /* We already got the store */
         if (isset($this->stores[$storename]) && $this->stores[$storename] != null) {

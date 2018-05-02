@@ -84,7 +84,10 @@ class PrincipalsBackend implements \Sabre\DAVACL\PrincipalBackend\BackendInterfa
         } else {
             $username = str_replace('principals/', '', $path);
         }
-        $userinfo = @mapi_zarafa_getuser_by_name($this->kdavBackend->GetStore($username), $username);
+        $userinfo = mapi_zarafa_getuser_by_name($this->kdavBackend->GetStore($username), $username);
+        if (!$userinfo) {
+            return false;
+        }
         $emailaddress = (isset($userinfo['emailaddress']) && $userinfo['emailaddress']) ? $userinfo['emailaddress'] : false;
         $fullname = (isset($userinfo['fullname']) && $userinfo['fullname']) ? $userinfo['fullname'] : false;
 
