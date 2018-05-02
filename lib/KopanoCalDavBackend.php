@@ -69,6 +69,9 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         $start = time() - $weekUnixTime;
         $range = strtotime("+7 weeks");
         $storeProps = mapi_getprops($store, array(PR_MAILBOX_OWNER_ENTRYID));
+        if (!isset($storeProps[PR_MAILBOX_OWNER_ENTRYID])) {
+            return;
+        }
         $pub = new \FreeBusyPublish($session, $store, $calendar, $storeProps[PR_MAILBOX_OWNER_ENTRYID]);
         $pub->publishFB($start, $range);
     }
@@ -207,6 +210,13 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         $ab = $this->kDavBackend->GetAddressBook();
 
         $ics = mapi_mapitoical($session, $ab, $mapimessage, array());
+        if (!$ics && mapi_last_hresult()) {
+            $this->logger->error("Error generating ical, error code: 0x%08X", mapi_last_hresult());
+            return null;
+        } elseif (!$ics) {
+            $this->logger->error("Error generating ical, unknown error");
+            return null;
+        }
         $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
 
         $r = [
@@ -291,7 +301,11 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         $ab = $this->kDavBackend->GetAddressBook();
 
         $ok = mapi_icaltomapi($session, $store, $ab, $mapimessage, $ics, false);
-        if (!$ok) {
+        if (!$ok && mapi_last_hresult()) {
+            $this->logger->error("Error updating mapi object, error code: 0x%08X", mapi_last_hresult());
+            return null;
+        } elseif (!$ok) {
+            $this->logger->error("Error updating mapi object, unknown error");
             return null;
         }
         mapi_savechanges($mapimessage);
