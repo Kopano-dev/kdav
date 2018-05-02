@@ -158,7 +158,7 @@ class KopanoDavBackend {
             // ensure default contacts folder is put first, some clients
             // i.e. Apple Addressbook only supports one contact folder,
             // therefore it is desired that folder is the default one.
-            if (in_array("IPF.Contact", $classes) && $row[PR_ENTRYID] == $rootprops[PR_IPM_CONTACT_ENTRYID])
+            if (in_array("IPF.Contact", $classes) && isset($rootprops[PR_IPM_CONTACT_ENTRYID]) && $row[PR_ENTRYID] == $rootprops[PR_IPM_CONTACT_ENTRYID])
                 array_unshift($folders, $folder);
             else
                 array_push($folders, $folder);
