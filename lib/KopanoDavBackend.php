@@ -259,6 +259,9 @@ class KopanoDavBackend {
 
         /* otherwise other users store */
         $store = mapi_openmsgstore($this->session, $defaultstore);
+        if (!$store) {
+            return false;
+        }
         $otherstore = mapi_msgstore_createentryid($store, $username);
         return mapi_openmsgstore($this->session, $otherstore);
     }
