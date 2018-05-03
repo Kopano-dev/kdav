@@ -62,9 +62,9 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
      * @param mapiresource $calendar
      * @return void
      */
-    private function UpdateFB($calendar) {
+    private function UpdateFB($calendarId, $calendar) {
         $session = $this->kDavBackend->GetSession();
-        $store = $this->kDavBackend->GetStore();
+        $store = $this->kDavBackend->GetStoreById($calendarId);
         $weekUnixTime = 7 * 24 * 60 * 60;
         $start = time() - $weekUnixTime;
         $range = strtotime("+7 weeks");
@@ -119,7 +119,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
     public function createCalendar($principalUri, $calendarUri, array $properties) {
         $this->logger->trace("principalUri: %s - calendarUri: %s - properties: %s", $principalUri, $calendarUri, $properties);
         // TODO Add displayname
-        return $this->kDavBackend->CreateFolder($calendarUri, static::CONTAINER_CLASS, "");
+        return $this->kDavBackend->CreateFolder($principalUri, $calendarUri, static::CONTAINER_CLASS, "");
     }
 
     /**
@@ -203,7 +203,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
             return null;
         }
 
-        $realId = $this->kDavBackend->GetIdOfMapiMessage($mapimessage);
+        $realId = $this->kDavBackend->GetIdOfMapiMessage($calendarId, $mapimessage);
 
         // this should be cached or moved to kDavBackend
         $session = $this->kDavBackend->GetSession();
@@ -254,11 +254,11 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         $this->logger->trace("calendarId: %s - objectUri: %s - calendarData: %s", $calendarId, $objectUri, $calendarData);
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, static::FILE_EXTENSION);
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
-        $mapimessage = $this->kDavBackend->CreateObject($folder, $objectId);
-        $retval = $this->setData($mapimessage, $calendarData);
+        $mapimessage = $this->kDavBackend->CreateObject($calendarId, $folder, $objectId);
+        $retval = $this->setData($calendarId, $mapimessage, $calendarData);
         if (!$retval)
             return null;
-        $this->UpdateFB($folder);
+        $this->UpdateFB($calendarId, $folder);
         return '"' . $retval . '"';
     }
 
@@ -286,17 +286,17 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($objectUri, static::FILE_EXTENSION);
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId);
-        $retval = $this->setData($mapimessage, $calendarData);
+        $retval = $this->setData($calendarId, $mapimessage, $calendarData);
         if (!$retval)
             return null;
-        $this->UpdateFB($folder);
+        $this->UpdateFB($calendarId, $folder);
         return '"' . $retval . '"';
     }
 
-    private function setData($mapimessage, $ics) {
+    private function setData($calendarId, $mapimessage, $ics) {
         $this->logger->trace("mapimessage: %s - ics: %s", $mapimessage, $ics);
         // this should be cached or moved to kDavBackend
-        $store = $this->kDavBackend->GetStore();
+        $store = $this->kDavBackend->GetStoreById($calendarId);
         $session = $this->kDavBackend->GetSession();
         $ab = $this->kDavBackend->GetAddressBook();
 

@@ -102,7 +102,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
     public function createAddressBook($principalUri, $url, array $properties) {
         $this->logger->trace("principalUri: %s - url: %s - properties: %s", $principalUri, $url, $properties);
         // TODO Add displayname
-        return $this->kDavBackend->CreateFolder($url, static::CONTAINER_CLASS, "");
+        return $this->kDavBackend->CreateFolder($principalUri, $url, static::CONTAINER_CLASS, "");
     }
 
     /**
@@ -170,7 +170,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
             return null;
         }
 
-        $realId = $this->kDavBackend->GetIdOfMapiMessage($mapimessage);
+        $realId = $this->kDavBackend->GetIdOfMapiMessage($addressBookId, $mapimessage);
 
         $session = $this->kDavBackend->GetSession();
         $ab = $this->kDavBackend->GetAddressBook();
@@ -221,8 +221,8 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
         $this->logger->trace("addressBookId: %s - cardUri: %s - cardData: %s", $addressBookId, $cardUri, $cardData);
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($cardUri, static::FILE_EXTENSION);
         $folder = $this->kDavBackend->GetMapiFolder($addressBookId);
-        $mapimessage = $this->kDavBackend->CreateObject($addressBookId, $objectId);
-        $retval = $this->setData($mapimessage, $cardData);
+        $mapimessage = $this->kDavBackend->CreateObject($addressBookId, $folder, $objectId);
+        $retval = $this->setData($addressBookId, $mapimessage, $cardData);
         if (!$retval)
             return null;
         return '"' . $retval . '"';
@@ -258,15 +258,15 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend {
 
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($cardUri, static::FILE_EXTENSION);
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($addressBookId, $objectId);
-        $retval = $this->setData($mapimessage, $cardData);
+        $retval = $this->setData($addressBookId, $mapimessage, $cardData);
         if (!$retval)
             return null;
         return '"' . $retval . '"';
     }
 
-    private function setData($mapimessage, $vcf) {
+    private function setData($addressBookId, $mapimessage, $vcf) {
         $this->logger->trace("mapimessage: %s - vcf: %s", $mapimessage, $vcf);
-        $store = $this->kDavBackend->GetStore();
+        $store = $this->kDavBackend->GetStoreById($addressBookId);
         $session = $this->kDavBackend->GetSession();
 
         $ok = mapi_vcftomapi($session, $store, $mapimessage, $vcf);

@@ -32,7 +32,7 @@ namespace Kopano\DAV;
 class KopanoDavBackend {
     private $logger;
     protected $session;
-    protected $store;
+    protected $stores;
     protected $user;
 
     public function __construct(KLogger $klogger) {
@@ -59,14 +59,8 @@ class KopanoDavBackend {
             return false;
         }
 
-        $this->store = GetDefaultStore($this->session);
-        if (!$this->store) {
-            $this->logger->info("Auth: ERROR - unable to open store for %s", $user);
-            return false;
-        }
-
         $this->user = $user;
-        $this->logger->debug("Auth: OK - user %s - store %s - session %s", $this->user, $this->store, $this->session);
+        $this->logger->debug("Auth: OK - user %s - session %s", $this->user, $this->session);
         return true;
     }
 
@@ -89,9 +83,9 @@ class KopanoDavBackend {
      * @param string $displayname
      * @return String
      */
-    public function CreateFolder($url, $class, $displayname) {
-        $props = mapi_getprops($this->store, array(PR_IPM_SUBTREE_ENTRYID));
-        $folder = mapi_msgstore_openentry($this->store, $props[PR_IPM_SUBTREE_ENTRYID]);
+    public function CreateFolder($principalUri, $url, $class, $displayname) {
+        $props = mapi_getprops($this->GetStore($principalUri), array(PR_IPM_SUBTREE_ENTRYID));
+        $folder = mapi_msgstore_openentry($this->GetStore($principalUri), $props[PR_IPM_SUBTREE_ENTRYID]);
         $newfolder = mapi_folder_createfolder($folder, $url, $displayname);
         mapi_setprops($newfolder, array(PR_CONTAINER_CLASS => $class));
         return $url;
@@ -105,13 +99,13 @@ class KopanoDavBackend {
      * @param string $displayname
      * @return bool
      */
-    public function DeleteFolder($url) {
-        $folder = $this->GetMapiFolder($url);
+    public function DeleteFolder($id) {
+        $folder = $this->GetMapiFolder($id);
         if (!$folder)
             return false;
 
         $props = mapi_getprops($folder, array(PR_ENTRYID, PR_PARENT_ENTRYID));
-        $parentfolder = mapi_msgstore_openentry($this->store, $props[PR_PARENT_ENTRYID]);
+        $parentfolder = mapi_msgstore_openentry($this->GetStoreById($id), $props[PR_PARENT_ENTRYID]);
         mapi_folder_deletefolder($parentfolder, $props[PR_ENTRYID]);
 
         return true;
@@ -130,7 +124,7 @@ class KopanoDavBackend {
 
         // TODO limit the output to subfolders of the principalUri?
 
-        $rootfolder = mapi_msgstore_openentry($this->store);
+        $rootfolder = mapi_msgstore_openentry($this->GetStore($principalUri));
         $hierarchy =  mapi_folder_gethierarchytable($rootfolder, CONVENIENT_DEPTH);
         // TODO also filter hidden folders
         $restrictions = array();
@@ -148,7 +142,7 @@ class KopanoDavBackend {
                 continue;
 
             $folder = [
-                'id'           => bin2hex($row[PR_SOURCE_KEY]),
+                'id'           => $principalUri . ":" . bin2hex($row[PR_SOURCE_KEY]),
                 'uri'          => $row[PR_DISPLAY_NAME],
                 'principaluri' => $principalUri,
                 '{DAV:}displayname' => $row[PR_DISPLAY_NAME],
@@ -163,7 +157,7 @@ class KopanoDavBackend {
             else
                 array_push($folders, $folder);
         }
-        $this->logger->trace('found %d folders', count($folders));
+        $this->logger->trace('found %d folders: %s', count($folders), $folders);
         return $folders;
     }
 
@@ -176,7 +170,7 @@ class KopanoDavBackend {
      */
     public function GetObjects($id, $fileExtension) {
         $folder = $this->GetMapiFolder($id);
-        $properties = getPropIdsFromStrings($this->store, ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
+        $properties = getPropIdsFromStrings($this->GetStoreById($id), ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
         $table = mapi_folder_getcontentstable($folder);
         $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, PR_MESSAGE_SIZE, $properties['appttsref'], $properties['goid']));
 
@@ -217,10 +211,10 @@ class KopanoDavBackend {
      * @param string $objectId
      * @return mapiresource
      */
-    public function CreateObject($folder, $objectId) {
+    public function CreateObject($folderId, $folder, $objectId) {
         $mapimessage = mapi_folder_createmessage($folder);
         // we save the objectId in PROP_APPTTSREF so we find it by this id
-        $properties = getPropIdsFromStrings($this->store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
+        $properties = getPropIdsFromStrings($this->GetStoreById($folderId), ["appttsref" => MapiProps::PROP_APPTTSREF]);
         mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
         return $mapimessage;
     }
@@ -233,8 +227,9 @@ class KopanoDavBackend {
      */
     public function GetMapiFolder($folderid) {
         $this->logger->trace('Id: %s', $folderid);
-        $entryid = mapi_msgstore_entryidfromsourcekey($this->store, hex2bin($folderid));
-        return mapi_msgstore_openentry($this->store, $entryid);
+        $arr = explode(':', $folderid);
+        $entryid = mapi_msgstore_entryidfromsourcekey($this->GetStore($arr[0]), hex2bin($arr[1]));
+        return mapi_msgstore_openentry($this->GetStore($arr[0]), $entryid);
     }
 
     public function GetAddressBook() {
@@ -242,8 +237,63 @@ class KopanoDavBackend {
         return mapi_openaddressbook($this->session);
     }
 
-    public function GetStore() {
-        return $this->store;
+    public function GetMapiStore($username = null) {
+        $msgstorestable = mapi_getmsgstorestable($this->session);
+        $msgstores = mapi_table_queryallrows($msgstorestable, array(PR_DEFAULT_STORE, PR_ENTRYID, PR_MDB_PROVIDER));
+
+        $defaultstore = null;
+        $publicstore = null;
+        foreach ($msgstores as $row) {
+            if (isset($row[PR_DEFAULT_STORE]) && $row[PR_DEFAULT_STORE])
+                $defaultstore = $row[PR_ENTRYID];
+            if (isset($row[PR_MDB_PROVIDER]) && $row[PR_MDB_PROVIDER] == KOPANO_STORE_PUBLIC_GUID)
+                $publicstore = $row[PR_ENTRYID];
+        }
+
+        if ($username == $this->GetUser() && $defaultstore != null) {
+            return mapi_openmsgstore($this->session, $defaultstore);
+        } elseif ($username == 'public' && $publicstore != null) {
+            return mapi_openmsgstore($this->session, $publicstore);
+        } else {
+            $store = mapi_openmsgstore($this->session, $defaultstore);
+            $otherstore = mapi_msgstore_createentryid($store, $username);
+            return mapi_openmsgstore($this->session, $otherstore);
+        }
+
+        if (!$storeentryid) {
+            $this->logger->error("Unable to open store, username: %s", $username);
+            return false;
+        }
+
+        return mapi_openmsgstore($this->session, $storeentryid);
+}
+
+
+    public function GetStore($storename) {
+        if ($storename == null) {
+            $storename = $this->GetUser();
+        } else {
+            $storename = str_replace('principals/', '', $storename);
+        }
+        $this->logger->trace("storename %s", $storename);
+
+
+        /* We already got the store */
+        if (isset($this->stores[$storename]) && $this->stores[$storename] != null) {
+            return $this->stores[$storename];
+        }
+
+        $this->stores[$storename] = $this->GetMapiStore($storename);
+        if (!$this->stores[$storename]) {
+            $this->logger->info("Auth: ERROR - unable to open store for %s", $storename);
+            return false;
+        }
+        return $this->stores[$storename];
+    }
+
+    public function GetStoreById($id) {
+        $arr = explode(':', $id);
+        return $this->GetStore($arr[0]);
     }
 
     public function GetSession() {
@@ -260,9 +310,9 @@ class KopanoDavBackend {
      * @param mapiresource $mapimessage
      * @return string
      */
-    public function GetIdOfMapiMessage($mapimessage) {
+    public function GetIdOfMapiMessage($folderId, $mapimessage) {
         $this->logger->trace("Finding ID of %s", $mapimessage);
-        $properties = getPropIdsFromStrings($this->store, ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
+        $properties = getPropIdsFromStrings($this->GetStoreById($folderId), ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
 
         // It's one of these, order:
         // - PROP_APPTTSREF (if set)
@@ -315,7 +365,7 @@ class KopanoDavBackend {
          *   - search PROP_GOID with the encapsulated value ($this->getOLUidFromICalUid())
          * If it's a GOID, we search PROP_GOID directly
          */
-        $properties = getPropIdsFromStrings($this->store, ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
+        $properties = getPropIdsFromStrings($this->GetStoreById($calendarId), ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
 
         $entryid = false;
 
@@ -363,7 +413,8 @@ class KopanoDavBackend {
         // it's just hex, so it's a sourcekey
         elseif (ctype_xdigit($id)) {
             $this->logger->trace("Is PR_SOURCE_KEY %s", $id);
-            $entryid = mapi_msgstore_entryidfromsourcekey($this->store, hex2bin($calendarId), hex2bin($id));
+            $arr = explode(':', $calendarId);
+            $entryid = mapi_msgstore_entryidfromsourcekey($this->GetStoreById($arr[0]), hex2bin($arr[1]), hex2bin($id));
             $restriction = false;
         }
         else {
@@ -389,7 +440,7 @@ class KopanoDavBackend {
             }
         }
         if ($entryid) {
-            $mapimessage = mapi_msgstore_openentry($this->store, $entryid);
+            $mapimessage = mapi_msgstore_openentry($this->GetStoreById($calendarId), $entryid);
             if(!$mapimessage) {
                 $this->logger->warn("Error, unable to open entry id: 0x%X", $entryid, mapi_last_hresult());
                 return null;

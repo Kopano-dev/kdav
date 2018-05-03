@@ -55,7 +55,10 @@ class PrincipalsBackend implements \Sabre\DAVACL\PrincipalBackend\BackendInterfa
      */
     public function getPrincipalsByPrefix($prefixPath) {
         $principals = array();
-        $principals[] = $this->getPrincipalByPath($prefixPath);
+        if ($prefixPath === 'principals') {
+            $principals[] = $this->getPrincipalByPath($prefixPath);
+            $principals[] = $this->getPrincipalByPath('principals/public');
+        }
         return $principals;
     }
 
@@ -68,13 +71,29 @@ class PrincipalsBackend implements \Sabre\DAVACL\PrincipalBackend\BackendInterfa
      * @return array
      */
     public function getPrincipalByPath($path) {
-        $userinfo = @mapi_zarafa_getuser_by_name($this->kdavBackend->GetStore(), $this->kdavBackend->GetUser());
+        if ($path === 'principals/public') {
+            return array(
+                'id' => 'public',
+                'uri' => 'principals/public',
+                '{DAV:}displayname' => 'Public',
+                '{http://sabredav.org/ns}email-address' => 'postmaster@localhost'
+            );
+        }
+        if ($path === 'principals') {
+            $username = $this->kdavBackend->GetUser();
+        } else {
+            $username = str_replace('principals/', '', $path);
+        }
+        $userinfo = mapi_zarafa_getuser_by_name($this->kdavBackend->GetStore($username), $username);
+        if (!$userinfo) {
+            return false;
+        }
         $emailaddress = (isset($userinfo['emailaddress']) && $userinfo['emailaddress']) ? $userinfo['emailaddress'] : false;
         $fullname = (isset($userinfo['fullname']) && $userinfo['fullname']) ? $userinfo['fullname'] : false;
 
         return array(
-                    'id'                                        => $this->kdavBackend->GetUser(),
-                    'uri'                                       => 'principals/' . $this->kdavBackend->GetUser(),
+                    'id'                                        => $username,
+                    'uri'                                       => 'principals/' . $username,
                     '{DAV:}displayname'                         => $fullname,
                     '{http://sabredav.org/ns}email-address'     => $emailaddress,
                     // TODO 'vcardurl' shoudl be set, see here: http://sabre.io/dav/principals/
