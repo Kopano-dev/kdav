@@ -58,7 +58,7 @@ class KopanoIMipPlugin extends \Sabre\CalDAV\Schedule\IMipPlugin {
         $recipient = preg_replace('!^mailto:!i', '', $iTipMessage->recipient);
         $session = $this->kDavBackend->GetSession();
         $addrbook = $this->kDavBackend->GetAddressBook();
-        $store = $this->kDavBackend->GetStore();
+        $store = $this->kDavBackend->GetStore($this->kDavBackend->GetUser());
         $storeprops = mapi_getprops($store, array(PR_IPM_OUTBOX_ENTRYID, PR_IPM_SENTMAIL_ENTRYID));
         if (!isset($storeprops[PR_IPM_OUTBOX_ENTRYID]) || !isset($storeprops[PR_IPM_SENTMAIL_ENTRYID])) {
             /* handle error */

@@ -250,23 +250,21 @@ class KopanoDavBackend {
                 $publicstore = $row[PR_ENTRYID];
         }
 
+        /* user's own store or public store */
         if ($username == $this->GetUser() && $defaultstore != null) {
             return mapi_openmsgstore($this->session, $defaultstore);
         } elseif ($username == 'public' && $publicstore != null) {
             return mapi_openmsgstore($this->session, $publicstore);
-        } else {
-            $store = mapi_openmsgstore($this->session, $defaultstore);
-            $otherstore = mapi_msgstore_createentryid($store, $username);
-            return mapi_openmsgstore($this->session, $otherstore);
         }
 
-        if (!$storeentryid) {
-            $this->logger->error("Unable to open store, username: %s", $username);
+        /* otherwise other users store */
+        $store = mapi_openmsgstore($this->session, $defaultstore);
+        if (!$store) {
             return false;
         }
-
-        return mapi_openmsgstore($this->session, $storeentryid);
-}
+        $otherstore = mapi_msgstore_createentryid($store, $username);
+        return mapi_openmsgstore($this->session, $otherstore);
+    }
 
 
     public function GetStore($storename) {
