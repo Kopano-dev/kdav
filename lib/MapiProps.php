@@ -33,5 +33,4 @@ define('PSETID_Kopano_CalDav',                  makeguid("{77536087-CB81-4dc9-99
 
 class MapiProps {
     const PROP_APPTTSREF = "PT_STRING8:PSETID_Kopano_CalDav:0x0025"; // dispidApptTsRef
-    const PROP_GOID = "PT_BINARY:PSETID_Meeting:0x3";
 }

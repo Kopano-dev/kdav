@@ -170,19 +170,16 @@ class KopanoDavBackend {
      */
     public function GetObjects($id, $fileExtension) {
         $folder = $this->GetMapiFolder($id);
-        $properties = getPropIdsFromStrings($this->GetStoreById($id), ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
+        $properties = getPropIdsFromStrings($this->GetStoreById($id), ["appttsref" => MapiProps::PROP_APPTTSREF]);
         $table = mapi_folder_getcontentstable($folder);
-        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, PR_MESSAGE_SIZE, $properties['appttsref'], $properties['goid']));
+        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, PR_MESSAGE_SIZE, $properties['appttsref']));
 
         $results = [];
         foreach($rows as $row) {
             $realId = "";
             if (isset($row[$properties['appttsref']])) {
                 $realId = $row[$properties['appttsref']];
-            } elseif (isset($row[$properties['goid']])) {
-                $realId = bin2hex($row[$properties['goid']]);
-            }
-            if (strlen($realId) == 0) {
+            } else {
                 $realId = bin2hex($row[PR_SOURCE_KEY]);
             }
 
@@ -300,8 +297,7 @@ class KopanoDavBackend {
 
     /**
      * Returns a object ID of a mapi object.
-     * If set, PROP_APPTTSREF will be preferred. If not, the PROP_GOID will be used if available.
-     * If both are not set, the PR_SOURCE_KEY of the message (as hex) will be returned.
+     * If set, PROP_APPTTSREF will be preferred. If not the PR_SOURCE_KEY of the message (as hex) will be returned.
      *
      * This order is reflected as well when searching for a message with these ids in KopanoDavBackend->GetMapiMessageForId().
      *
@@ -310,21 +306,15 @@ class KopanoDavBackend {
      */
     public function GetIdOfMapiMessage($folderId, $mapimessage) {
         $this->logger->trace("Finding ID of %s", $mapimessage);
-        $properties = getPropIdsFromStrings($this->GetStoreById($folderId), ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
+        $properties = getPropIdsFromStrings($this->GetStoreById($folderId), ["appttsref" => MapiProps::PROP_APPTTSREF]);
 
         // It's one of these, order:
         // - PROP_APPTTSREF (if set)
-        // - PROP_GOID (if set)
         // - PR_SOURCE_KEY
-        $props = mapi_getprops($mapimessage, array($properties['appttsref'], $properties['goid'], PR_SOURCE_KEY));
+        $props = mapi_getprops($mapimessage, array($properties['appttsref'], PR_SOURCE_KEY));
         if (isset($props[$properties['appttsref']])) {
             $this->logger->debug("Found PROP_APPTTSREF: %s", $props[$properties['appttsref']]);
             return $props[$properties['appttsref']];
-        }
-        elseif (isset($props[$properties['goid']])) {
-            $id = bin2hex($props[$properties['goid']]);
-            $this->logger->debug("Found PROP_GOID: %s", $id);
-            return $id;
         }
         // is always available
         else {
@@ -336,7 +326,7 @@ class KopanoDavBackend {
 
     /**
      * Finds and opens a MapiMessage from an objectId.
-     * The id can be a vCal-Uid, an OL-GOID or a PR_SOURCE_KEY (as hex).
+     * The id can be a PROP_APPTTSREF or a PR_SOURCE_KEY (as hex).
      *
      * @param string $calendarId
      * @param string $id
@@ -354,62 +344,17 @@ class KopanoDavBackend {
 
         /* The ID can be several different things:
          * - a UID that is saved in PROP_APPTTSREF
-         * - a PROP_GOID (containing a vCal-Uid or not)
          * - a PR_SOURCE_KEY
          *
          * If it's a sourcekey, we can open the message directly.
          * If it's a UID, we:
          *   - search PROP_APPTTSREF with this value AND/OR
-         *   - search PROP_GOID with the encapsulated value ($this->getOLUidFromICalUid())
-         * If it's a GOID, we search PROP_GOID directly
          */
-        $properties = getPropIdsFromStrings($this->GetStoreById($calendarId), ["appttsref" => MapiProps::PROP_APPTTSREF, "goid" => MapiProps::PROP_GOID]);
+        $properties = getPropIdsFromStrings($this->GetStoreById($calendarId), ["appttsref" => MapiProps::PROP_APPTTSREF]);
 
         $entryid = false;
 
-        // an encoded vCal-uid or directly an UUID
-        if ($this->isEncodedVcalUid($id) || $this->isValidUUID($id)) {
-            $uid = $this->getICalUidFromOLUid($id);
-
-            if ($this->isOutlookUid($id)) {
-                $goid = $id;
-            }
-            else {
-                $goid = $this->getOLUidFromICalUid($id);
-            }
-
-            // build a restriction that looks for the id in PROP_APPTTSREF or encoded in PROP_GOID
-            $restriction =  Array(RES_OR,
-                                Array (
-                                    Array(RES_PROPERTY,
-                                        Array(RELOP => RELOP_EQ,
-                                            ULPROPTAG => $properties["appttsref"],
-                                            VALUE => $uid
-                                        )
-                                    ),
-                                    Array(RES_PROPERTY,
-                                        Array(RELOP => RELOP_EQ,
-                                            ULPROPTAG => $properties["goid"],
-                                            VALUE => hex2bin($goid)
-                                            )
-                                        )
-                                    )
-                                );
-            $this->logger->trace("Is vCal-Uid '%s' - GOID %s", $uid, $goid);
-        }
-        // it's a real OL UID (without vCal uid)
-        elseif ($this->isOutlookUid($id)) {
-            // build a restriction that looks for the id in PROP_GOID
-            $restriction =  Array(RES_PROPERTY,
-                                    Array(RELOP => RELOP_EQ,
-                                            ULPROPTAG => $properties["goid"],
-                                            VALUE => hex2bin($id)
-                                            )
-                                    );
-            $this->logger->trace("Is OL-GOID %s", $id);
-        }
-        // it's just hex, so it's a sourcekey
-        elseif (ctype_xdigit($id)) {
+        if (ctype_xdigit($id)) {
             $this->logger->trace("Is PR_SOURCE_KEY %s", $id);
             $arr = explode(':', $calendarId);
             $entryid = mapi_msgstore_entryidfromsourcekey($this->GetStoreById($arr[0]), hex2bin($arr[1]), hex2bin($id));
@@ -489,89 +434,5 @@ class KopanoDavBackend {
         }
 
         return true;
-    }
-
-    /**
-     * Parses and returns an ecoded vCal-Uid from an OL compatible GlobalObjectID.
-     *
-     * @param string    $olUid      an OL compatible GlobalObjectID as HEX
-     *
-     * @access protected
-     * @return string   the vCal-Uid if available in the olUid, else the original olUid
-     */
-    protected function getICalUidFromOLUid($olUid){
-        if (ctype_xdigit($olUid)) {
-            // get a binary representation of it
-            $icalUidBi = hex2bin($olUid);
-            // check if "vCal-Uid" is somewhere in outlookid case-insensitive
-            $icalUid = stristr($icalUidBi, "vCal-Uid");
-            if ($icalUid !== false) {
-                //get the length of the ical id - go back 4 position from where "vCal-Uid" was found
-                $begin = unpack("V", substr($icalUidBi, strlen($icalUid) * (-1) - 4, 4));
-                //remove "vCal-Uid" and packed "1" and use the ical id length
-                return substr($icalUid, 12, ($begin[1] - 13));
-            }
-        }
-        return $olUid;
-    }
-
-    /**
-     * Indicates if a given UID contains a vCal-Uid or not.
-     *
-     * @param string $uid (as hex)
-     *
-     * @access protected
-     * @return boolean
-     */
-    protected function isEncodedVcalUid($uid) {
-        return ctype_xdigit($uid) && stristr(hex2bin($uid), "vCal-Uid") !== false;
-    }
-
-    /**
-     * Indicates if a guiven UID is an OL GOID or not.
-     *
-     * @param string $uid
-     *
-     * @access protected
-     * @return boolean
-     */
-    protected static function isOutlookUid($uid) {
-        return 0 === stripos($uid, '040000008200E00074C5B7101A82E008');
-    }
-
-
-    /**
-     * Checks if it's a valid UUID as specified in RFC4122.
-     *
-     * @param string    $uuid
-     *
-     * @access protected
-     * @return boolean
-     */
-    protected function isValidUUID($uuid) {
-        return !!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $uuid);
-    }
-
-    /**
-     * Checks the given UID if it is an OL compatible GlobalObjectID.
-     * If not, the given UID is encoded inside the GlobalObjectID.
-     *
-     * @param string    $icalUid    an appointment uid as HEX
-     *
-     * @access protected
-     * @return string   an OL compatible GlobalObjectID
-     *
-     */
-    protected function getOLUidFromICalUid($icalUid) {
-        if (strlen($icalUid) <= 64) {
-            $len = 13 + strlen($icalUid);
-            $OLUid = pack("V", $len);
-            $OLUid .= "vCal-Uid";
-            $OLUid .= pack("V", 1);
-            $OLUid .= $icalUid;
-            return "040000008200E00074C5B7101A82E0080000000000000000000000000000000000000000". bin2hex($OLUid). "00";
-        }
-        else
-            return $icalUid;
     }
 }
