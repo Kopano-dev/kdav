@@ -1,6 +1,6 @@
 # kDAV - Kopano CalDAV & CardDAV
 
-Implements CalDAV and CardDAV support for Kopano 8.3 or newer.
+Implements CalDAV and CardDAV support for Kopano 8.6.2 or newer. Due to minimal PHP requirements of SabreDAV we recommend the use of PHP 7.0.
 
 As DAV server [SabreDAV](http://sabre.io/dav) is used.
 
