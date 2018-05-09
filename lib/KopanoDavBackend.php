@@ -166,12 +166,18 @@ class KopanoDavBackend {
      *
      * @param string $id
      * @param string $fileExtension
+     * @param long $start
+     * @param long $end
      * @return array
      */
-    public function GetObjects($id, $fileExtension) {
+    public function GetObjects($id, $fileExtension, $start = null, $end = null) {
         $folder = $this->GetMapiFolder($id);
         $properties = getPropIdsFromStrings($this->GetStoreById($id), ["appttsref" => MapiProps::PROP_APPTTSREF]);
         $table = mapi_folder_getcontentstable($folder);
+        if ($start != null && $end != null) {
+            $restriction = $this->GetCalendarRestriction($this->GetStoreById($id), $start, $end);
+            mapi_table_restrict($table, $restriction);
+        }
         $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, PR_MESSAGE_SIZE, $properties['appttsref']));
 
         $results = [];
@@ -434,5 +440,102 @@ class KopanoDavBackend {
         }
 
         return true;
+    }
+
+    /**
+     * Create a MAPI restriction to use in the calendar which will
+     * return future calendar items (until $end), plus those since $start.
+     * Origins: Z-Push
+     *
+     * @param MAPIStore  $store         the MAPI store
+     * @param long       $start         Timestamp since when to include messages
+     * @param long       $end           Ending timestamp
+     *
+     * @access public
+     * @return array
+     */
+    //TODO getting named properties
+    public function GetCalendarRestriction($store, $start, $end) {
+        $props = MAPIProps::GetAppointmentProperties();
+        $props = getPropIdsFromStrings($store, $props);
+
+        // ATTENTION: ON CHANGING THIS RESTRICTION, MAPIUtils::IsInCalendarSyncInterval() also needs to be changed
+        $restriction = Array(RES_OR,
+             Array(
+                   // OR
+                   // item.end > window.start && item.start < window.end
+                   Array(RES_AND,
+                         Array(
+                               Array(RES_PROPERTY,
+                                     Array(RELOP => RELOP_LE,
+                                           ULPROPTAG => $props["starttime"],
+                                           VALUE => $end
+                                           )
+                                     ),
+                               Array(RES_PROPERTY,
+                                     Array(RELOP => RELOP_GE,
+                                           ULPROPTAG => $props["endtime"],
+                                           VALUE => $start
+                                           )
+                                     )
+                               )
+                         ),
+                   // OR
+                   Array(RES_OR,
+                         Array(
+                               // OR
+                               // (EXIST(recurrence_enddate_property) && item[isRecurring] == true && recurrence_enddate_property >= start)
+                               Array(RES_AND,
+                                     Array(
+                                           Array(RES_EXIST,
+                                                 Array(ULPROPTAG => $props["recurrenceend"],
+                                                       )
+                                                 ),
+                                           Array(RES_PROPERTY,
+                                                 Array(RELOP => RELOP_EQ,
+                                                       ULPROPTAG => $props["isrecurring"],
+                                                       VALUE => true
+                                                       )
+                                                 ),
+                                           Array(RES_PROPERTY,
+                                                 Array(RELOP => RELOP_GE,
+                                                       ULPROPTAG => $props["recurrenceend"],
+                                                       VALUE => $start
+                                                       )
+                                                 )
+                                           )
+                                     ),
+                               // OR
+                               // (!EXIST(recurrence_enddate_property) && item[isRecurring] == true && item[start] <= end)
+                               Array(RES_AND,
+                                     Array(
+                                           Array(RES_NOT,
+                                                 Array(
+                                                       Array(RES_EXIST,
+                                                             Array(ULPROPTAG => $props["recurrenceend"]
+                                                                   )
+                                                             )
+                                                       )
+                                                 ),
+                                           Array(RES_PROPERTY,
+                                                 Array(RELOP => RELOP_LE,
+                                                       ULPROPTAG => $props["starttime"],
+                                                       VALUE => $end
+                                                       )
+                                                 ),
+                                           Array(RES_PROPERTY,
+                                                 Array(RELOP => RELOP_EQ,
+                                                       ULPROPTAG => $props["isrecurring"],
+                                                       VALUE => true
+                                                       )
+                                                 )
+                                           )
+                                     )
+                               )
+                         ) // EXISTS OR
+                   )
+             );        // global OR
+
+        return $restriction;
     }
 }
