@@ -173,6 +173,75 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
     }
 
     /**
+     * Performs a calendar-query on the contents of this calendar.
+     *
+     * The calendar-query is defined in RFC4791 : CalDAV. Using the
+     * calendar-query it is possible for a client to request a specific set of
+     * object, based on contents of iCalendar properties, date-ranges and
+     * iCalendar component types (VTODO, VEVENT).
+     *
+     * This method should just return a list of (relative) urls that match this
+     * query.
+     *
+     * The list of filters are specified as an array. The exact array is
+     * documented by \Sabre\CalDAV\CalendarQueryParser.
+     *
+     * Note that it is extremely likely that getCalendarObject for every path
+     * returned from this method will be called almost immediately after. You
+     * may want to anticipate this to speed up these requests.
+     *
+     * This method provides a default implementation, which parses *all* the
+     * iCalendar objects in the specified calendar.
+     *
+     * This default may well be good enough for personal use, and calendars
+     * that aren't very large. But if you anticipate high usage, big calendars
+     * or high loads, you are strongly adviced to optimize certain paths.
+     *
+     * The best way to do so is override this method and to optimize
+     * specifically for 'common filters'.
+     *
+     * Requests that are extremely common are:
+     *   * requests for just VEVENTS
+     *   * requests for just VTODO
+     *   * requests with a time-range-filter on either VEVENT or VTODO.
+     *
+     * ..and combinations of these requests. It may not be worth it to try to
+     * handle every possible situation and just rely on the (relatively
+     * easy to use) CalendarQueryValidator to handle the rest.
+     *
+     * Note that especially time-range-filters may be difficult to parse. A
+     * time-range filter specified on a VEVENT must for instance also handle
+     * recurrence rules correctly.
+     * A good example of how to interprete all these filters can also simply
+     * be found in \Sabre\CalDAV\CalendarQueryFilter. This class is as correct
+     * as possible, so it gives you a good idea on what type of stuff you need
+     * to think of.
+     *
+     * @param mixed $calendarId
+     * @param array $filters
+     * @return array
+     */
+    public function calendarQuery($calendarId, array $filters) {
+        $start = $end = null;
+        foreach ($filters['comp-filters'] as $filter) {
+            if ($filter['name'] != 'VEVENT') {
+                continue;
+            }
+            if (is_array($filter['time-range']) && isset($filter['time-range']['start'], $filter['time-range']['end'])) {
+                $start = $filter['time-range']['start']->getTimestamp();
+                $end = $filter['time-range']['end']->getTimestamp();
+            }
+        }
+        $this->logger->trace("start: %s, end: %s", $start, $end);
+        $objects = $this->kDavBackend->GetObjects($calendarId, static::FILE_EXTENSION, $start, $end);
+        $result = [];
+        foreach ($objects as $object) {
+            $result[] = $object['uri'];
+        }
+        return $result;
+    }
+
+    /**
      * Returns information from a single calendar object, based on it's object
      * uri.
      *
