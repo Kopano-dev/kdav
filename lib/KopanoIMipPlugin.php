@@ -72,12 +72,12 @@ class KopanoIMipPlugin extends \Sabre\CalDAV\Schedule\IMipPlugin {
         mapi_icaltomapi($session, $store, $addrbook, $newmessage, $iTipMessage->message->serialize(), false);
         mapi_setprops($newmessage, array(PR_SENTMAIL_ENTRYID => $storeprops[PR_IPM_SENTMAIL_ENTRYID], PR_DELETE_AFTER_SUBMIT => false));
 
-        /* clean the recipients */
+        /* clean the recipients (needed since mapi_icaltomapi does not take IC2M_NO_ORGANIZER) */
         $recipientTable = mapi_message_getrecipienttable($newmessage);
-        $recipientRows = mapi_table_queryallrows($recipientTable, array(PR_EMAIL_ADDRESS, PR_ROWID));
+        $recipientRows = mapi_table_queryallrows($recipientTable, array(PR_SMTP_ADDRESS, PR_ROWID));
         $removeRecipients = array();
         foreach ($recipientRows as $key => $recip) {
-            if ($recip[PR_EMAIL_ADDRESS] != $recipient) {
+            if (strcasecmp($recip[PR_SMTP_ADDRESS], $recipient) != 0) {
                 $removeRecipients[] = $recip;
             }
         }
