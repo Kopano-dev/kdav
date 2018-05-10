@@ -170,14 +170,36 @@ class KopanoDavBackend {
      * @param long $end
      * @return array
      */
-    public function GetObjects($id, $fileExtension, $start = null, $end = null) {
+    public function GetObjects($id, $fileExtension, $filters = array()) {
         $folder = $this->GetMapiFolder($id);
         $properties = getPropIdsFromStrings($this->GetStoreById($id), ["appttsref" => MapiProps::PROP_APPTTSREF]);
         $table = mapi_folder_getcontentstable($folder);
-        if ($start != null && $end != null) {
-            $restriction = $this->GetCalendarRestriction($this->GetStoreById($id), $start, $end);
+
+        $restrictions = Array();
+        if (isset($filters['start'], $filters['end'])) {
+            $this->logger->trace("got start: %d and end: %d", $filters['start'], $filters['end']);
+            $subrestriction = $this->GetCalendarRestriction($this->GetStoreById($id), $filters['start'], $filters['end']);
+            $restrictions[] = $subrestriction;
+        }
+        if (isset($filters['types'])) {
+            $this->logger->trace("got types: %s", $filters['types']);
+            $arr = Array();
+            foreach ($filters['types'] as $filter) {
+                $arr[] = Array(RES_PROPERTY,
+                      Array(RELOP => RELOP_EQ,
+                            ULPROPTAG => PR_MESSAGE_CLASS,
+                            VALUE => $filter
+                      )
+                );
+            }
+            $restrictions[] = Array(RES_OR, $arr);
+        }
+        if (!empty($restrictions)) {
+            $restriction = Array(RES_AND, $restrictions);
+            $this->logger->trace("Got restriction: %s", $restriction);
             mapi_table_restrict($table, $restriction);
         }
+
         $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, PR_MESSAGE_SIZE, $properties['appttsref']));
 
         $results = [];
