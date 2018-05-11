@@ -223,17 +223,34 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
      */
     public function calendarQuery($calendarId, array $filters) {
         $start = $end = null;
+        $types = array();
         foreach ($filters['comp-filters'] as $filter) {
-            if ($filter['name'] != 'VEVENT') {
-                continue;
+            $this->logger->trace("got filter: %s", $filter);
+
+            if ($filter['name'] == 'VEVENT') {
+                $types[] = 'IPM.Appointment';
             }
+            elseif ($filter['name'] == 'VTODO') {
+                $types[] = 'IPM.Task';
+            }
+
+            /* will this work on tasks? */
             if (is_array($filter['time-range']) && isset($filter['time-range']['start'], $filter['time-range']['end'])) {
                 $start = $filter['time-range']['start']->getTimestamp();
                 $end = $filter['time-range']['end']->getTimestamp();
             }
         }
-        $this->logger->trace("start: %s, end: %s", $start, $end);
-        $objects = $this->kDavBackend->GetObjects($calendarId, static::FILE_EXTENSION, $start, $end);
+
+        $objfilters = array();
+        if ($start != null && $end != null) {
+            $objfilters["start"] = $start;
+            $objfilters["end"] = $end;
+        }
+        if (!empty($types)) {
+            $objfilters["types"] = $types;
+        }
+
+        $objects = $this->kDavBackend->GetObjects($calendarId, static::FILE_EXTENSION, $objfilters);
         $result = [];
         foreach ($objects as $object) {
             $result[] = $object['uri'];
