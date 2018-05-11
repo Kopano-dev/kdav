@@ -357,7 +357,6 @@ class KopanoDavBackend {
          * If it's a UID, we:
          *   - search PROP_APPTTSREF with this value AND/OR
          */
-        $properties = $this->GetCustomProperties($calendarId);
         $entryid = false;
 
         if (ctype_xdigit($id)) {
@@ -367,6 +366,8 @@ class KopanoDavBackend {
             $restriction = false;
         }
         else {
+            $this->logger->trace("Is APPTTSREF %s", $id);
+            $properties = $this->GetCustomProperties($calendarId);
             $restriction = Array(RES_PROPERTY,
                                  Array(RELOP => RELOP_EQ,
                                        ULPROPTAG => $properties["appttsref"],
