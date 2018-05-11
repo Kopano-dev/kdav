@@ -55,7 +55,7 @@ class KopanoIMipPlugin extends \Sabre\CalDAV\Schedule\IMipPlugin {
         $storeprops = mapi_getprops($store, array(PR_IPM_OUTBOX_ENTRYID, PR_IPM_SENTMAIL_ENTRYID));
         if (!isset($storeprops[PR_IPM_OUTBOX_ENTRYID]) || !isset($storeprops[PR_IPM_SENTMAIL_ENTRYID])) {
             /* handle error */
-            $this->logger->error("No outbox!");
+            $this->logger->error("no outbox found aborting user: %s", $this->kDavBackend->GetUser());
             return;
         }
 
@@ -70,15 +70,23 @@ class KopanoIMipPlugin extends \Sabre\CalDAV\Schedule\IMipPlugin {
         $recipientRows = mapi_table_queryallrows($recipientTable, array(PR_SMTP_ADDRESS, PR_ROWID));
         $removeRecipients = array();
         foreach ($recipientRows as $key => $recip) {
+            if (!isset($recip[PR_SMTP_ADDRESS]))
+                continue;
             if (strcasecmp($recip[PR_SMTP_ADDRESS], $recipient) != 0) {
                 $removeRecipients[] = $recip;
             }
         }
-        mapi_message_modifyrecipients($newmessage, MODRECIP_REMOVE, $removeRecipients);
+        if (count($removeRecipients) == count($recipientRows)) {
+            $this->logger->error("message will have no recipients. List to remove: %s - recipientRows: %s", $removeRecipients, $recipientRows);
+            return;
+        }
+        if (count($removeRecipients) > 0)
+            mapi_message_modifyrecipients($newmessage, MODRECIP_REMOVE, $removeRecipients);
 
         /* save message and send */
         mapi_savechanges($newmessage);
         mapi_message_submitmessage($newmessage);
+        $this->logger->info("email sent, recipient: %s", $recipient);
         $iTipMessage->scheduleStatus = '1.1;Scheduling message sent via iMip';
     }
 }
