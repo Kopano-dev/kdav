@@ -25,7 +25,7 @@
         "psr-4" : {
             "Kopano\\DAV\\" : "lib/"
         },
-        "files" : ["config.php", "version.php", "mapi/mapi.util.php", "mapi/mapidefs.php", "mapi/mapiguid.php", "mapi/mapitags.php", "mapi/class.baserecurrence.php", "mapi/class.recurrence.php", "mapi/class.freebusypublish.php"]
+        "files" : ["config.php", "version.php", "mapi/mapi.util.php", "mapi/mapicode.php", "mapi/mapidefs.php", "mapi/mapiguid.php", "mapi/mapitags.php", "mapi/class.baserecurrence.php", "mapi/class.recurrence.php", "mapi/class.freebusypublish.php"]
     },
     "minimum-stability"     : "stable"
 }

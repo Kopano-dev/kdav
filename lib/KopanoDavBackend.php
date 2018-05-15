@@ -36,9 +36,11 @@ class KopanoDavBackend {
     protected $stores;
     protected $user;
     protected $customprops;
+    protected $syncstate;
 
     public function __construct(KLogger $klogger) {
         $this->logger = $klogger;
+        $this->syncstate = new KopanoSyncState($klogger, SYNC_DB);
     }
 
     /**
@@ -147,6 +149,7 @@ class KopanoDavBackend {
                 'id'           => $principalUri . ":" . bin2hex($row[PR_SOURCE_KEY]),
                 'uri'          => $row[PR_DISPLAY_NAME],
                 'principaluri' => $principalUri,
+                '{http://sabredav.org/ns}sync-token' => isset($row[PR_LOCAL_COMMIT_TIME_MAX]) ? strval($row[PR_LOCAL_COMMIT_TIME_MAX]) : '0000000000',
                 '{DAV:}displayname' => $row[PR_DISPLAY_NAME],
                 '{http://calendarserver.org/ns/}getctag' => isset($row[PR_LOCAL_COMMIT_TIME_MAX]) ? strval($row[PR_LOCAL_COMMIT_TIME_MAX]) : '0000000000',
             ];
@@ -579,5 +582,60 @@ class KopanoDavBackend {
              );        // global OR
 
         return $restriction;
+    }
+
+    public function Sync($folderId, $syncToken, $fileExtension) {
+        $phpwrapper = new PHPWrapper($this->GetStoreById($folderId), $this->logger, $this->GetCustomProperties($folderId), $fileExtension);
+        $mapiimporter = mapi_wrap_importcontentschanges($phpwrapper);
+
+        $mapifolder = $this->GetMapiFolder($folderId);
+        $exporter = mapi_openproperty($mapifolder, PR_CONTENTS_SYNCHRONIZER, IID_IExchangeExportChanges, 0, 0);
+        if (!$exporter) {
+            $this->logger->error("Unable to get exporter");
+            return null;
+        }
+
+        $arr = explode(':', $folderId);
+        $stream = mapi_stream_create();
+        if ($syncToken == null) {
+            mapi_stream_write($stream, hex2bin("0000000000000000"));
+        } else {
+            $value = $this->syncstate->getState($arr[1], $syncToken);
+            if ($value == null) {
+                $this->logger->error("Unable to get value from token: %s - folderId: %s", $syncToken, $folderId);
+                return null;
+            }
+            mapi_stream_write($stream, hex2bin($value));
+        }
+
+        mapi_exportchanges_config($exporter, $stream, SYNC_NORMAL | SYNC_UNICODE, $mapiimporter, null, false, false, 0);
+        $syncresult = mapi_exportchanges_synchronize($exporter);
+        $this->logger->trace("sync result %s", $syncresult);
+
+        mapi_exportchanges_updatestate($exporter, $stream);
+        mapi_stream_seek($stream, 0, STREAM_SEEK_SET);
+        $state = "";
+        while (true) {
+            $data = mapi_stream_read($stream, 4096);
+            if (strlen($data) > 0)
+                $state .= $data;
+            else
+                break;
+        }
+
+        $props = mapi_getprops($mapifolder, array(PR_LOCAL_COMMIT_TIME_MAX));
+        $newtoken = $props[PR_LOCAL_COMMIT_TIME_MAX];
+        $this->syncstate->setState($arr[1], $newtoken, bin2hex($state));
+
+        $result = array(
+            "syncToken" => $newtoken,
+            "added" => $phpwrapper->GetAdded(),
+            "modified" => $phpwrapper->GetModified(),
+            "deleted" => $phpwrapper->GetDeleted()
+        );
+
+        $this->logger->trace("Returning %s", $result);
+
+        return $result;
     }
 }
