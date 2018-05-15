@@ -34,6 +34,7 @@ class KopanoDavBackend {
     protected $session;
     protected $stores;
     protected $user;
+    protected $customprops;
 
     public function __construct(KLogger $klogger) {
         $this->logger = $klogger;
@@ -172,7 +173,7 @@ class KopanoDavBackend {
      */
     public function GetObjects($id, $fileExtension, $filters = array()) {
         $folder = $this->GetMapiFolder($id);
-        $properties = getPropIdsFromStrings($this->GetStoreById($id), ["appttsref" => MapiProps::PROP_APPTTSREF]);
+        $properties = $this->GetCustomProperties($id);
         $table = mapi_folder_getcontentstable($folder);
 
         $restrictions = Array();
@@ -239,7 +240,7 @@ class KopanoDavBackend {
     public function CreateObject($folderId, $folder, $objectId) {
         $mapimessage = mapi_folder_createmessage($folder);
         // we save the objectId in PROP_APPTTSREF so we find it by this id
-        $properties = getPropIdsFromStrings($this->GetStoreById($folderId), ["appttsref" => MapiProps::PROP_APPTTSREF]);
+        $properties = $this->GetCustomProperties($folderId);
         mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
         return $mapimessage;
     }
@@ -334,7 +335,7 @@ class KopanoDavBackend {
      */
     public function GetIdOfMapiMessage($folderId, $mapimessage) {
         $this->logger->trace("Finding ID of %s", $mapimessage);
-        $properties = getPropIdsFromStrings($this->GetStoreById($folderId), ["appttsref" => MapiProps::PROP_APPTTSREF]);
+        $properties = $this->GetCustomProperties($folderId);
 
         // It's one of these, order:
         // - PROP_APPTTSREF (if set)
@@ -378,8 +379,6 @@ class KopanoDavBackend {
          * If it's a UID, we:
          *   - search PROP_APPTTSREF with this value AND/OR
          */
-        $properties = getPropIdsFromStrings($this->GetStoreById($calendarId), ["appttsref" => MapiProps::PROP_APPTTSREF]);
-
         $entryid = false;
 
         if (ctype_xdigit($id)) {
@@ -389,6 +388,8 @@ class KopanoDavBackend {
             $restriction = false;
         }
         else {
+            $this->logger->trace("Is APPTTSREF %s", $id);
+            $properties = $this->GetCustomProperties($calendarId);
             $restriction = Array(RES_PROPERTY,
                                  Array(RELOP => RELOP_EQ,
                                        ULPROPTAG => $properties["appttsref"],
@@ -462,6 +463,24 @@ class KopanoDavBackend {
         }
 
         return true;
+    }
+
+    /**
+     * Get named (custom) properties. Currently only PROP_APPTTSREF
+     *
+     * @param string    $id    the folder id
+     *
+     * @access protected
+     * @return mixed
+     */
+    protected function GetCustomProperties($id) {
+        if (!isset($this->customprops[$id])) {
+            $this->logger->trace("Fetching properties id:%s", $id);
+            $store = $this->GetStoreById($id);
+            $properties = getPropIdsFromStrings($store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
+            $this->customprops[$id] = $properties;
+        }
+        return $this->customprops[$id];
     }
 
     /**
