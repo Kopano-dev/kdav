@@ -6,8 +6,7 @@ As DAV server [SabreDAV](http://sabre.io/dav) is used.
 
 ## License
 
-This project is licensed under the terms of the [GNU Affero General Public
-License, version 3](http://www.gnu.org/licenses/agpl-3.0.html).
+kDAV is free software; you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation; either version 3 or (at your option) any later version.
 
 ## Install
 
