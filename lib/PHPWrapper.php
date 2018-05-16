@@ -52,18 +52,46 @@ class PHPWrapper {
         $this->deleted = array();
     }
 
+    /**
+     * Accessor for $this->added.
+     *
+     * @access public
+     * @return array
+     */
     public function GetAdded() {
         return $this->added;
     }
 
+    /**
+     * Accessor for $this->modified.
+     *
+     * @access public
+     * @return array
+     */
     public function GetModified() {
         return $this->modified;
     }
 
+    /**
+     * Accessor for $this->deleted.
+     *
+     * @access public
+     * @return array
+     */
     public function GetDeleted() {
         return $this->deleted;
     }
 
+    /**
+     * Imports a single message.
+     *
+     * @param array         $props
+     * @param long          $flags
+     * @param object        $retmapimessage
+     *
+     * @access public
+     * @return long
+     */
     public function ImportMessageChange($props, $flags, $retmapimessage) {
         $mapimessage = mapi_msgstore_openentry($this->store, $props[PR_ENTRYID]);
         $messageProps = mapi_getprops($mapimessage, array(PR_SOURCE_KEY, $this->props["appttsref"]));
@@ -84,6 +112,15 @@ class PHPWrapper {
         return SYNC_E_IGNORE;
     }
 
+    /**
+     * Imports a list of messages to be deleted.
+     *
+     * @param long          $flags
+     * @param array         $sourcekeys     array with sourcekeys
+     *
+     * @access public
+     * @return
+     */
     public function ImportMessageDeletion($flags, $sourcekeys) {
         foreach($sourcekeys as $sourcekey) {
             $this->logger->trace("got %s", bin2hex($sourcekey));

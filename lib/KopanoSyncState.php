@@ -50,6 +50,15 @@ class KopanoSyncState {
         $this->db->exec($query);
     }
 
+    /**
+     * Fetch state information for a folderId (e.g. calenderId) and an id (PR_LOCAL_COMMIT_TIME_MAX).
+     *
+     * @param string $folderid
+     * @param string $id
+     *
+     * @access public
+     * @return string
+     */
     public function getState($folderid, $id) {
         $query = "SELECT value FROM kdav_sync_state WHERE folderid = :folderid AND id = :id";
         $statement = $this->db->prepare($query);
@@ -62,6 +71,16 @@ class KopanoSyncState {
         return $result['value'];
     }
 
+    /**
+     * Set state information for a folderId (e.g. calenderId) and an id (PR_LOCAL_COMMIT_TIME_MAX).
+     * The state information is the sync token for ICS.
+     *
+     * @param string $folderid
+     * @param string $id
+     *
+     * @access public
+     * @return void
+     */
     public function setState($folderid, $id, $value) {
         $query = "REPLACE INTO kdav_sync_state (id, folderid, value) VALUES(:id, :folderid, :value)";
         $statement = $this->db->prepare($query);
@@ -71,6 +90,17 @@ class KopanoSyncState {
         $statement->execute();
     }
 
+    /**
+     * Set the APPTTSREF (custom URL) for a folderId and source key.
+     * This is needed for detecting the URL of deleted items reported by ICS.
+     *
+     * @param string $folderid
+     * @param string $id
+     * @param string $appttsref
+     *
+     * @access public
+     * @return void
+     */
     public function rememberAppttsref($folderid, $sourcekey, $appttsref) {
         $query = "REPLACE INTO kdav_sync_appttsref (folderid, sourcekey, appttsref) VALUES(:folderid, :sourcekey, :appttsref)";
         $statement = $this->db->prepare($query);
@@ -80,6 +110,16 @@ class KopanoSyncState {
         $statement->execute();
     }
 
+    /**
+     * Get the APPTTSREF (custom URL) for a folderId and source key.
+     * This is needed for detecting the URL of deleted items reported by ICS.
+     *
+     * @param string $folderid
+     * @param string $id
+     *
+     * @access public
+     * @return string
+     */
     public function getAppttsref($folderid, $sourcekey) {
         $query = "SELECT appttsref FROM kdav_sync_appttsref WHERE folderid = :folderid AND sourcekey = :sourcekey";
         $statement = $this->db->prepare($query);

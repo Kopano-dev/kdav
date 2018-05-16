@@ -584,6 +584,17 @@ class KopanoDavBackend {
         return $restriction;
     }
 
+    /**
+     * Performs ICS based sync used from getChangesForAddressBook
+     * / getChangesForCalendar.
+     *
+     * @param string $folderId
+     * @param string $syncToken
+     * @param string $fileExtension
+     *
+     * @access public
+     * @return array
+     */
     public function Sync($folderId, $syncToken, $fileExtension) {
         $arr = explode(':', $folderId);
         $phpwrapper = new PHPWrapper($this->GetStoreById($folderId), $this->logger, $this->GetCustomProperties($folderId), $fileExtension, $this->syncstate, $arr[1]);
