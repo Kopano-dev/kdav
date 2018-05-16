@@ -127,7 +127,7 @@ class KopanoDavBackend {
         // TODO limit the output to subfolders of the principalUri?
 
         $rootfolder = mapi_msgstore_openentry($this->GetStore($principalUri));
-        $hierarchy =  mapi_folder_gethierarchytable($rootfolder, CONVENIENT_DEPTH);
+        $hierarchy =  mapi_folder_gethierarchytable($rootfolder, CONVENIENT_DEPTH | MAPI_DEFERRED_ERRORS);
         // TODO also filter hidden folders
         $restrictions = array();
         foreach ($classes as $class) {
@@ -175,7 +175,7 @@ class KopanoDavBackend {
     public function GetObjects($id, $fileExtension, $filters = array()) {
         $folder = $this->GetMapiFolder($id);
         $properties = $this->GetCustomProperties($id);
-        $table = mapi_folder_getcontentstable($folder);
+        $table = mapi_folder_getcontentstable($folder, MAPI_DEFERRED_ERRORS);
 
         $restrictions = Array();
         if (isset($filters['start'], $filters['end'])) {
@@ -401,7 +401,7 @@ class KopanoDavBackend {
 
         // find the message if we have a restriction
         if ($restriction) {
-            $table = mapi_folder_getcontentstable($mapifolder);
+            $table = mapi_folder_getcontentstable($mapifolder, MAPI_DEFERRED_ERRORS);
             // Get requested properties, plus whatever we need
             $proplist = array(PR_ENTRYID);
             $rows = mapi_table_queryallrows($table, $proplist, $restriction);
