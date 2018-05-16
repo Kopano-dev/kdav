@@ -39,11 +39,13 @@ class PHPWrapper {
     private $modified;
     private $deleted;
 
-    public function __construct($store, $logger, $props, $fileext) {
+    public function __construct($store, $logger, $props, $fileext, $syncstate, $folderid) {
         $this->store = $store;
         $this->logger = $logger;
         $this->props = $props;
         $this->fileext = $fileext;
+        $this->syncstate = $syncstate;
+        $this->folderid = $folderid;
 
         $this->added = array();
         $this->modified = array();
@@ -66,10 +68,13 @@ class PHPWrapper {
         $mapimessage = mapi_msgstore_openentry($this->store, $props[PR_ENTRYID]);
         $messageProps = mapi_getprops($mapimessage, array(PR_SOURCE_KEY, $this->props["appttsref"]));
         $this->logger->trace("got %s (appttsref: %s), flags: %d\n", bin2hex($messageProps[PR_SOURCE_KEY]), $messageProps[$this->props["appttsref"]], $flags);
-        if (isset($messageProps[$this->props["appttsref"]]))
-            $url = $messageProps[$this->props["appttsref"]];
-        else
+        if (isset($messageProps[$this->props["appttsref"]])) {
+            $appttsref = $messageProps[$this->props["appttsref"]];
+            $this->syncstate->rememberAppttsref($this->folderid, bin2hex($messageProps[PR_SOURCE_KEY]), $appttsref);
+            $url = $appttsref;
+        } else {
             $url = bin2hex($messageProps[PR_SOURCE_KEY]);
+        }
 
         if ($flags == SYNC_NEW_MESSAGE)
             $this->added[] = $url . $this->fileext;
@@ -79,13 +84,22 @@ class PHPWrapper {
         return SYNC_E_IGNORE;
     }
 
+    public function ImportMessageDeletion($flags, $sourcekeys) {
+        foreach($sourcekeys as $sourcekey) {
+            $this->logger->trace("got %s", bin2hex($sourcekey));
+            $appttsref = $this->syncstate->getAppttsref($this->folderid, bin2hex($sourcekey));
+            if ($appttsref != null) {
+                $this->deleted[] = $appttsref . $this->fileext;
+            } else {
+                $this->deleted[] = bin2hex($sourcekey) . $this->fileext;
+            }
+        }
+    }
+
     /** Implement MAPI interface */
     public function Config($stream, $flags = 0) {}
     public function GetLastError($hresult, $ulflags, &$lpmapierror) {}
     public function UpdateState($stream) {}
-    public function ImportMessageDeletion($flags, $sourcekeys) {
-        $this->logger->trace("got %s", $sourcekeys);
-    }
     public function ImportMessageMove($sourcekeysrcfolder, $sourcekeysrcmessage, $message, $sourcekeydestmessage, $changenumdestmessage) { }
     public function ImportPerUserReadStateChange($readstates) { }
     public function ImportFolderChange($props) {return 0;}

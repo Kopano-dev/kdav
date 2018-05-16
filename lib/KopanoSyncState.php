@@ -38,15 +38,22 @@ class KopanoSyncState {
         $this->logger->trace("Using db %s", $dbstring);
         $this->db = new \PDO($dbstring);
 
-        $query = "CREATE TABLE IF NOT EXISTS sync_state (
-             id INTEGER PRIMARY KEY, calendarid VARCHAR(255), value TEXT)";
+        $query = "CREATE TABLE IF NOT EXISTS kdav_sync_state (
+             id INTEGER, folderid VARCHAR(255), value TEXT,
+             PRIMARY KEY (id, folderid));";
+        $this->db->exec($query);
+
+        $query = "CREATE TABLE IF NOT EXISTS kdav_sync_appttsref (
+             sourcekey VARCHAR(255), folderid VARCHAR(255),
+             appttsref VARCHAR(255),
+             PRIMARY KEY (sourcekey, folderid));";
         $this->db->exec($query);
     }
 
-    public function getState($calendarid, $id) {
-        $query = "SELECT value FROM sync_state WHERE calendarid = :calendarid AND id = :id";
+    public function getState($folderid, $id) {
+        $query = "SELECT value FROM kdav_sync_state WHERE folderid = :folderid AND id = :id";
         $statement = $this->db->prepare($query);
-        $statement->bindParam(":calendarid", $calendarid);
+        $statement->bindParam(":folderid", $folderid);
         $statement->bindParam(":id", $id);
         $statement->execute();
         $result = $statement->fetch();
@@ -55,12 +62,33 @@ class KopanoSyncState {
         return $result['value'];
     }
 
-    public function setState($calendarid, $id, $value) {
-        $query = "REPLACE INTO sync_state (id, calendarid, value) VALUES(:id, :calendarid, :value)";
+    public function setState($folderid, $id, $value) {
+        $query = "REPLACE INTO kdav_sync_state (id, folderid, value) VALUES(:id, :folderid, :value)";
         $statement = $this->db->prepare($query);
-        $statement->bindParam(":calendarid", $calendarid);
+        $statement->bindParam(":folderid", $folderid);
         $statement->bindParam(":id", $id);
         $statement->bindParam(":value", $value);
         $statement->execute();
+    }
+
+    public function rememberAppttsref($folderid, $sourcekey, $appttsref) {
+        $query = "REPLACE INTO kdav_sync_appttsref (folderid, sourcekey, appttsref) VALUES(:folderid, :sourcekey, :appttsref)";
+        $statement = $this->db->prepare($query);
+        $statement->bindParam(":folderid", $folderid);
+        $statement->bindParam(":sourcekey", $sourcekey);
+        $statement->bindParam(":appttsref", $appttsref);
+        $statement->execute();
+    }
+
+    public function getAppttsref($folderid, $sourcekey) {
+        $query = "SELECT appttsref FROM kdav_sync_appttsref WHERE folderid = :folderid AND sourcekey = :sourcekey";
+        $statement = $this->db->prepare($query);
+        $statement->bindParam(":folderid", $folderid);
+        $statement->bindParam(":sourcekey", $sourcekey);
+        $statement->execute();
+        $result = $statement->fetch();
+        if (!$result)
+            return null;
+        return $result['appttsref'];
     }
 }

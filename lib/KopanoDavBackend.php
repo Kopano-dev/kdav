@@ -585,7 +585,8 @@ class KopanoDavBackend {
     }
 
     public function Sync($folderId, $syncToken, $fileExtension) {
-        $phpwrapper = new PHPWrapper($this->GetStoreById($folderId), $this->logger, $this->GetCustomProperties($folderId), $fileExtension);
+        $arr = explode(':', $folderId);
+        $phpwrapper = new PHPWrapper($this->GetStoreById($folderId), $this->logger, $this->GetCustomProperties($folderId), $fileExtension, $this->syncstate, $arr[1]);
         $mapiimporter = mapi_wrap_importcontentschanges($phpwrapper);
 
         $mapifolder = $this->GetMapiFolder($folderId);
@@ -595,7 +596,6 @@ class KopanoDavBackend {
             return null;
         }
 
-        $arr = explode(':', $folderId);
         $stream = mapi_stream_create();
         if ($syncToken == null) {
             mapi_stream_write($stream, hex2bin("0000000000000000"));
