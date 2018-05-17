@@ -381,15 +381,15 @@ class KopanoDavBackend {
          *   - search PROP_APPTTSREF with this value AND/OR
          */
         $entryid = false;
+        $restriction = false;
 
         if (ctype_xdigit($id)) {
-            $this->logger->trace("Is PR_SOURCE_KEY %s", $id);
+            $this->logger->trace("Try PR_SOURCE_KEY %s", $id);
             $arr = explode(':', $calendarId);
             $entryid = mapi_msgstore_entryidfromsourcekey($this->GetStoreById($arr[0]), hex2bin($arr[1]), hex2bin($id));
-            $restriction = false;
         }
-        else {
-            $this->logger->trace("Is APPTTSREF %s", $id);
+        if (!$entryid) {
+            $this->logger->trace("Try APPTTSREF %s", $id);
             $properties = $this->GetCustomProperties($calendarId);
             $restriction = Array(RES_PROPERTY,
                                  Array(RELOP => RELOP_EQ,
