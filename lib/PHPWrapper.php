@@ -83,6 +83,16 @@ class PHPWrapper {
     }
 
     /**
+     * Returns total changes.
+     *
+     * @access public
+     * @return integer
+     */
+    public function Total() {
+        return count($this->added) + count($this->modified) + count($this->deleted);
+    }
+
+    /**
      * Imports a single message.
      *
      * @param array         $props

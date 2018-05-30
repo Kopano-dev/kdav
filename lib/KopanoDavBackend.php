@@ -149,7 +149,7 @@ class KopanoDavBackend {
                 'id'           => $principalUri . ":" . bin2hex($row[PR_SOURCE_KEY]),
                 'uri'          => $row[PR_DISPLAY_NAME],
                 'principaluri' => $principalUri,
-                '{http://sabredav.org/ns}sync-token' => isset($row[PR_LOCAL_COMMIT_TIME_MAX]) ? strval($row[PR_LOCAL_COMMIT_TIME_MAX]) : '0000000000',
+                '{http://sabredav.org/ns}sync-token' => '0000000000',
                 '{DAV:}displayname' => $row[PR_DISPLAY_NAME],
                 '{http://calendarserver.org/ns/}getctag' => isset($row[PR_LOCAL_COMMIT_TIME_MAX]) ? strval($row[PR_LOCAL_COMMIT_TIME_MAX]) : '0000000000',
             ];
@@ -620,7 +620,13 @@ class KopanoDavBackend {
         }
 
         mapi_exportchanges_config($exporter, $stream, SYNC_NORMAL | SYNC_UNICODE, $mapiimporter, null, false, false, 0);
-        $syncresult = mapi_exportchanges_synchronize($exporter);
+        while(($syncresult = mapi_exportchanges_synchronize($exporter))) {
+            if (!is_array($syncresult))
+                break;
+            $this->logger->trace("syncing total is %d", $phpwrapper->Total());
+            if ($phpwrapper->Total() > 1000)
+                break;
+        }
         $this->logger->trace("sync result %s", $syncresult);
 
         mapi_exportchanges_updatestate($exporter, $stream);
@@ -634,8 +640,11 @@ class KopanoDavBackend {
                 break;
         }
 
-        $props = mapi_getprops($mapifolder, array(PR_LOCAL_COMMIT_TIME_MAX));
-        $newtoken = $props[PR_LOCAL_COMMIT_TIME_MAX];
+        if ($phpwrapper->Total() > 0)
+            $newtoken = uniqid();
+        else
+            $newtoken = $syncToken;
+
         $this->syncstate->setState($arr[1], $newtoken, bin2hex($state));
 
         $result = array(

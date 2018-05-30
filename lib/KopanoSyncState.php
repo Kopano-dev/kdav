@@ -39,7 +39,7 @@ class KopanoSyncState {
         $this->db = new \PDO($dbstring);
 
         $query = "CREATE TABLE IF NOT EXISTS kdav_sync_state (
-             id INTEGER, folderid VARCHAR(255), value TEXT,
+             id VARCHAR(255), folderid VARCHAR(255), value TEXT,
              PRIMARY KEY (id, folderid));";
         $this->db->exec($query);
 
@@ -51,7 +51,7 @@ class KopanoSyncState {
     }
 
     /**
-     * Fetch state information for a folderId (e.g. calenderId) and an id (PR_LOCAL_COMMIT_TIME_MAX).
+     * Fetch state information for a folderId (e.g. calenderId) and an id (uuid).
      *
      * @param string $folderid
      * @param string $id
@@ -72,7 +72,7 @@ class KopanoSyncState {
     }
 
     /**
-     * Set state information for a folderId (e.g. calenderId) and an id (PR_LOCAL_COMMIT_TIME_MAX).
+     * Set state information for a folderId (e.g. calenderId) and an id (uuid).
      * The state information is the sync token for ICS.
      *
      * @param string $folderid
