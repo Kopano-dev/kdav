@@ -49,6 +49,13 @@ class KopanoIMipPlugin extends \Sabre\CalDAV\Schedule\IMipPlugin {
     public function schedule(\Sabre\VObject\ITip\Message $iTipMessage) {
         $this->logger->trace("method: %s - recipient: %s - significantChange: %d - scheduleStatus: %s - message: %s", $iTipMessage->method, $iTipMessage->recipient, $iTipMessage->significantChange, $iTipMessage->scheduleStatus, $iTipMessage->message->serialize());
 
+        if (!$iTipMessage->significantChange) {
+            if (!$iTipMessage->scheduleStatus) {
+                $iTipMessage->scheduleStatus = "1.0;We got the message, but it's not significant enough to warrant an email";
+            }
+            return;
+        }
+
         $recipient = preg_replace('!^mailto:!i', '', $iTipMessage->recipient);
         $session = $this->kDavBackend->GetSession();
         $addrbook = $this->kDavBackend->GetAddressBook();
