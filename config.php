@@ -57,7 +57,7 @@ define('SABRE_AUTH_REALM', 'Kopano DAV');
 define('DAV_ROOT_URI', '/');
 
 // Location of the sync database (PDO syntax)
-define('SYNC_DB', 'sqlite:/tmp/syncstate.db');
+define('SYNC_DB', 'sqlite:/var/lib/kopano/kdav/syncstate.db');
 
 // Developer mode: verifies log messages
 define('DEVELOPER_MODE', true);
