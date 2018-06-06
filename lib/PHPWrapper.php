@@ -110,14 +110,17 @@ class PHPWrapper {
             $appttsref = $messageProps[$this->props["appttsref"]];
             $this->syncstate->rememberAppttsref($this->folderid, bin2hex($messageProps[PR_SOURCE_KEY]), $appttsref);
             $url = $appttsref;
-        } else {
+        }
+        else {
             $url = bin2hex($messageProps[PR_SOURCE_KEY]);
         }
 
-        if ($flags == SYNC_NEW_MESSAGE)
+        if ($flags == SYNC_NEW_MESSAGE) {
             $this->added[] = $url . $this->fileext;
-        else
+        }
+        else {
             $this->modified[] = $url . $this->fileext;
+        }
 
         return SYNC_E_IGNORE;
     }
@@ -137,7 +140,8 @@ class PHPWrapper {
             $appttsref = $this->syncstate->getAppttsref($this->folderid, bin2hex($sourcekey));
             if ($appttsref != null) {
                 $this->deleted[] = $appttsref . $this->fileext;
-            } else {
+            }
+            else {
                 $this->deleted[] = bin2hex($sourcekey) . $this->fileext;
             }
         }
@@ -147,8 +151,8 @@ class PHPWrapper {
     public function Config($stream, $flags = 0) {}
     public function GetLastError($hresult, $ulflags, &$lpmapierror) {}
     public function UpdateState($stream) {}
-    public function ImportMessageMove($sourcekeysrcfolder, $sourcekeysrcmessage, $message, $sourcekeydestmessage, $changenumdestmessage) { }
-    public function ImportPerUserReadStateChange($readstates) { }
+    public function ImportMessageMove($sourcekeysrcfolder, $sourcekeysrcmessage, $message, $sourcekeydestmessage, $changenumdestmessage) {}
+    public function ImportPerUserReadStateChange($readstates) {}
     public function ImportFolderChange($props) {return 0;}
     public function ImportFolderDeletion($flags, $sourcekeys) {return 0;}
 }

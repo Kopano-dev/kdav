@@ -122,7 +122,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
     }
 
     /**
-     * Delete a calendar and all it's objects
+     * Delete a calendar and all its objects.
      *
      * @param string $calendarId
      * @return void
@@ -165,9 +165,8 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
      * @return array
      */
     public function getCalendarObjects($calendarId) {
-        $this->logger->trace("calendarId: %s", $calendarId);
         $result = $this->kDavBackend->GetObjects($calendarId, static::FILE_EXTENSION);
-        $this->logger->trace("found %d objects", count($result));
+        $this->logger->trace("calendarId: %s found %d objects", $calendarId, count($result));
         return $result;
     }
 
@@ -258,8 +257,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
     }
 
     /**
-     * Returns information from a single calendar object, based on it's object
-     * uri.
+     * Returns information from a single calendar object, based on its object uri.
      *
      * The object uri is only the basename, or filename and not a full path.
      *
@@ -271,7 +269,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
      *
      * @param string $calendarId
      * @param string $objectUri
-     * @param ressource $mapifolder     optional mapifolder resource, used if avialable
+     * @param ressource $mapifolder     optional mapifolder resource, used if available
      * @return array|null
      */
     public function getCalendarObject($calendarId, $objectUri, $mapifolder = null) {
@@ -298,10 +296,12 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         if (!$ics && mapi_last_hresult()) {
             $this->logger->error("Error generating ical, error code: 0x%08X", mapi_last_hresult());
             return null;
-        } elseif (!$ics) {
+        }
+        if (!$ics) {
             $this->logger->error("Error generating ical, unknown error");
             return null;
         }
+
         $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
 
         $r = [
@@ -341,8 +341,9 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
         $mapimessage = $this->kDavBackend->CreateObject($calendarId, $folder, $objectId);
         $retval = $this->setData($calendarId, $mapimessage, $calendarData);
-        if (!$retval)
+        if (!$retval) {
             return null;
+        }
         $this->UpdateFB($calendarId, $folder);
         return '"' . $retval . '"';
     }
@@ -372,8 +373,9 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         $folder = $this->kDavBackend->GetMapiFolder($calendarId);
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($calendarId, $objectId);
         $retval = $this->setData($calendarId, $mapimessage, $calendarData);
-        if (!$retval)
+        if (!$retval) {
             return null;
+        }
         $this->UpdateFB($calendarId, $folder);
         return '"' . $retval . '"';
     }
@@ -389,10 +391,12 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         if (!$ok && mapi_last_hresult()) {
             $this->logger->error("Error updating mapi object, error code: 0x%08X", mapi_last_hresult());
             return null;
-        } elseif (!$ok) {
+        }
+        if (!$ok) {
             $this->logger->error("Error updating mapi object, unknown error");
             return null;
         }
+
         mapi_savechanges($mapimessage);
         $props = mapi_getprops($mapimessage, array(PR_LAST_MODIFICATION_TIME));
         return $props[PR_LAST_MODIFICATION_TIME];
@@ -543,6 +547,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
      * @return array
      */
     public function getChangesForCalendar($calendarId, $syncToken, $syncLevel, $limit = null) {
+        //TODO - implement limit
         $this->logger->trace("calendarId: %s - syncToken: %s - syncLevel: %d - limit: %d", $calendarId, $syncToken, $syncLevel, $limit);
         return $this->kDavBackend->Sync($calendarId, $syncToken, static::FILE_EXTENSION);
     }

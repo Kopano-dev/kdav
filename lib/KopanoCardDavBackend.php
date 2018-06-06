@@ -107,7 +107,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend implem
     }
 
     /**
-     * Deletes an entire addressbook and all its contents
+     * Deletes an entire addressbook and all its contents.
      *
      * @param mixed $addressBookId
      * @return void
@@ -138,9 +138,8 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend implem
      * @return array
      */
     public function getCards($addressbookId) {
-        $this->logger->trace("addressbookId: %s", $addressbookId);
         $result = $this->kDavBackend->GetObjects($addressbookId, static::FILE_EXTENSION);
-        $this->logger->trace("found %d objects", count($result));
+        $this->logger->trace("addressbookId: %s found %d objects", $addressbookId, count($result));
         return $result;
     }
 
@@ -224,8 +223,9 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend implem
         $folder = $this->kDavBackend->GetMapiFolder($addressBookId);
         $mapimessage = $this->kDavBackend->CreateObject($addressBookId, $folder, $objectId);
         $retval = $this->setData($addressBookId, $mapimessage, $cardData);
-        if (!$retval)
+        if (!$retval) {
             return null;
+        }
         return '"' . $retval . '"';
     }
 
@@ -260,8 +260,9 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend implem
         $objectId = $this->kDavBackend->GetObjectIdFromObjectUri($cardUri, static::FILE_EXTENSION);
         $mapimessage = $this->kDavBackend->GetMapiMessageForId($addressBookId, $objectId);
         $retval = $this->setData($addressBookId, $mapimessage, $cardData);
-        if (!$retval)
+        if (!$retval) {
             return null;
+        }
         return '"' . $retval . '"';
     }
 
@@ -281,7 +282,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend implem
 
 
     /**
-     * Deletes a card
+     * Deletes a card.
      *
      * @param mixed $addressBookId
      * @param string $cardUri
@@ -355,6 +356,7 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend implem
      * @return array
      */
     function getChangesForAddressBook($addressBookId, $syncToken, $syncLevel, $limit = null) {
+        //TODO - implement limit
         $this->logger->trace("addressBookId: %s - syncToken: %s - syncLevel: %d - limit: %d", $addressBookId, $syncToken, $syncLevel, $limit);
         return $this->kDavBackend->Sync($addressBookId, $syncToken, static::FILE_EXTENSION);
     }
