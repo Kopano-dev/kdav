@@ -105,13 +105,14 @@ class PHPWrapper {
     public function ImportMessageChange($props, $flags, $retmapimessage) {
         $mapimessage = mapi_msgstore_openentry($this->store, $props[PR_ENTRYID]);
         $messageProps = mapi_getprops($mapimessage, array(PR_SOURCE_KEY, $this->props["appttsref"]));
-        $this->logger->trace("got %s (appttsref: %s), flags: %d\n", bin2hex($messageProps[PR_SOURCE_KEY]), $messageProps[$this->props["appttsref"]], $flags);
+
         if (isset($messageProps[$this->props["appttsref"]])) {
-            $appttsref = $messageProps[$this->props["appttsref"]];
-            $this->syncstate->rememberAppttsref($this->folderid, bin2hex($messageProps[PR_SOURCE_KEY]), $appttsref);
-            $url = $appttsref;
+            $this->logger->trace("got %s (appttsref: %s), flags: %d\n", bin2hex($messageProps[PR_SOURCE_KEY]), $messageProps[$this->props["appttsref"]], $flags);
+            $this->syncstate->rememberAppttsref($this->folderid, bin2hex($messageProps[PR_SOURCE_KEY]), $messageProps[$this->props["appttsref"]]);
+            $url = $messageProps[$this->props["appttsref"]];
         }
         else {
+            $this->logger->trace("got %s, flags: %d\n", bin2hex($messageProps[PR_SOURCE_KEY]), $flags);
             $url = bin2hex($messageProps[PR_SOURCE_KEY]);
         }
 
