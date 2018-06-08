@@ -107,12 +107,12 @@ class PHPWrapper {
         $messageProps = mapi_getprops($mapimessage, array(PR_SOURCE_KEY, $this->props["appttsref"]));
 
         if (isset($messageProps[$this->props["appttsref"]])) {
-            $this->logger->trace("got %s (appttsref: %s), flags: %d\n", bin2hex($messageProps[PR_SOURCE_KEY]), $messageProps[$this->props["appttsref"]], $flags);
+            $this->logger->trace("got %s (appttsref: %s), flags: %d", bin2hex($messageProps[PR_SOURCE_KEY]), $messageProps[$this->props["appttsref"]], $flags);
             $this->syncstate->rememberAppttsref($this->folderid, bin2hex($messageProps[PR_SOURCE_KEY]), $messageProps[$this->props["appttsref"]]);
             $url = $messageProps[$this->props["appttsref"]];
         }
         else {
-            $this->logger->trace("got %s, flags: %d\n", bin2hex($messageProps[PR_SOURCE_KEY]), $flags);
+            $this->logger->trace("got %s, flags: %d", bin2hex($messageProps[PR_SOURCE_KEY]), $flags);
             $url = bin2hex($messageProps[PR_SOURCE_KEY]);
         }
 

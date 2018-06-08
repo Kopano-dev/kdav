@@ -76,6 +76,7 @@ class KopanoSyncState {
      *
      * @param string $folderid
      * @param string $id
+     * @param string $value
      *
      * @access public
      * @return void
@@ -94,7 +95,7 @@ class KopanoSyncState {
      * This is needed for detecting the URL of deleted items reported by ICS.
      *
      * @param string $folderid
-     * @param string $id
+     * @param string $sourcekey
      * @param string $appttsref
      *
      * @access public
@@ -114,7 +115,7 @@ class KopanoSyncState {
      * This is needed for detecting the URL of deleted items reported by ICS.
      *
      * @param string $folderid
-     * @param string $id
+     * @param string $sourcekey
      *
      * @access public
      * @return string
