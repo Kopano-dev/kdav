@@ -547,8 +547,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
      * @return array
      */
     public function getChangesForCalendar($calendarId, $syncToken, $syncLevel, $limit = null) {
-        //TODO - implement limit
         $this->logger->trace("calendarId: %s - syncToken: %s - syncLevel: %d - limit: %d", $calendarId, $syncToken, $syncLevel, $limit);
-        return $this->kDavBackend->Sync($calendarId, $syncToken, static::FILE_EXTENSION);
+        return $this->kDavBackend->Sync($calendarId, $syncToken, static::FILE_EXTENSION, $limit);
     }
 }

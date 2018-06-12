@@ -616,11 +616,12 @@ class KopanoDavBackend {
      * @param string $folderId
      * @param string $syncToken
      * @param string $fileExtension
+     * @param int $limit
      *
      * @access public
      * @return array
      */
-    public function Sync($folderId, $syncToken, $fileExtension) {
+    public function Sync($folderId, $syncToken, $fileExtension, $limit = null) {
         $arr = explode(':', $folderId);
         $phpwrapper = new PHPWrapper($this->GetStoreById($folderId), $this->logger, $this->GetCustomProperties($folderId), $fileExtension, $this->syncstate, $arr[1]);
         $mapiimporter = mapi_wrap_importcontentschanges($phpwrapper);
@@ -645,18 +646,22 @@ class KopanoDavBackend {
             mapi_stream_write($stream, hex2bin($value));
         }
 
-        mapi_exportchanges_config($exporter, $stream, SYNC_NORMAL | SYNC_UNICODE, $mapiimporter, null, false, false, 0);
-        while (($syncresult = mapi_exportchanges_synchronize($exporter))) {
-            if (!is_array($syncresult)) {
-                break;
-            }
-            $this->logger->trace("syncing total is %d", $phpwrapper->Total());
-            //TODO configurable limit
-            if ($phpwrapper->Total() > 1000) {
+        // The last parameter in mapi_exportchanges_config is buffer size for mapi_exportchanges_synchronize - how many
+        // changes will be processed in its call. Setting it to MAX_SYNC_ITEMS won't export more items than is set in
+        // the config. If there are more changes than MAX_SYNC_ITEMS the client will eventually catch up and sync
+        // the rest on the subsequent sync request(s).
+        $bufferSize = ($limit !== null && $limit > 0) ? $limit : MAX_SYNC_ITEMS;
+        mapi_exportchanges_config($exporter, $stream, SYNC_NORMAL | SYNC_UNICODE, $mapiimporter, null, false, false, $bufferSize);
+        $changesCount = mapi_exportchanges_getchangecount($exporter);
+        $this->logger->debug("Exporter found %d changes, buffer size for mapi_exportchanges_synchronize %d", $changesCount, $bufferSize);
+        while ((is_array(mapi_exportchanges_synchronize($exporter)))) {
+            if ($changesCount > $bufferSize) {
+                $this->logger->info("There were too many changes to be exported in this request. Total changes %d, exported %d.", $changesCount, $phpwrapper->Total());
                 break;
             }
         }
-        $this->logger->trace("sync result %s", $syncresult);
+        $exportedChanges = $phpwrapper->Total();
+        $this->logger->debug("Exported %d changes, pending %d", $exportedChanges, $changesCount - $exportedChanges);
 
         mapi_exportchanges_updatestate($exporter, $stream);
         mapi_stream_seek($stream, 0, STREAM_SEEK_SET);

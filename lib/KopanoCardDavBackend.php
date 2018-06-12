@@ -356,9 +356,8 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend implem
      * @return array
      */
     function getChangesForAddressBook($addressBookId, $syncToken, $syncLevel, $limit = null) {
-        //TODO - implement limit
         $this->logger->trace("addressBookId: %s - syncToken: %s - syncLevel: %d - limit: %d", $addressBookId, $syncToken, $syncLevel, $limit);
-        return $this->kDavBackend->Sync($addressBookId, $syncToken, static::FILE_EXTENSION);
+        return $this->kDavBackend->Sync($addressBookId, $syncToken, static::FILE_EXTENSION, $limit);
     }
 
 }

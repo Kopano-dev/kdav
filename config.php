@@ -59,5 +59,8 @@ define('DAV_ROOT_URI', '/');
 // Location of the sync database (PDO syntax)
 define('SYNC_DB', 'sqlite:/var/lib/kopano/kdav/syncstate.db');
 
+// Number of items to send in one request.
+define('MAX_SYNC_ITEMS', 1000);
+
 // Developer mode: verifies log messages
 define('DEVELOPER_MODE', true);
