@@ -41,6 +41,12 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend implem
     const CONTAINER_CLASS = 'IPF.Contact';
     const CONTAINER_CLASSES = array('IPF.Contact');
 
+    /**
+     * Constructor.
+     *
+     * @param KopanoDavBackend $kDavBackend
+     * @param KLogger $klogger
+     */
     public function __construct(KopanoDavBackend $kDavBackend, KLogger $klogger) {
         $this->kDavBackend = $kDavBackend;
         $this->logger = $klogger;
@@ -266,6 +272,14 @@ class KopanoCardDavBackend extends \Sabre\CardDAV\Backend\AbstractBackend implem
         return '"' . $retval . '"';
     }
 
+    /**
+     * Sets data for a contact.
+     *
+     * @param mixed $addressBookId
+     * @param MAPIMessage $mapimessage
+     * @param string $vcf
+     * @return string|NULL
+     */
     private function setData($addressBookId, $mapimessage, $vcf) {
         $this->logger->trace("mapimessage: %s - vcf: %s", $mapimessage, $vcf);
         $store = $this->kDavBackend->GetStoreById($addressBookId);

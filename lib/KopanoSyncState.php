@@ -33,6 +33,12 @@ namespace Kopano\DAV;
 class KopanoSyncState {
     private $db;
 
+    /**
+     * Constructor.
+     *
+     * @param KLogger $logger
+     * @param string $dbstring
+     */
     public function __construct($logger, $dbstring) {
         $this->logger = $logger;
         $this->logger->trace("Using db %s", $dbstring);

@@ -34,6 +34,11 @@ class PrincipalsBackend implements \Sabre\DAVACL\PrincipalBackend\BackendInterfa
 
     protected $kdavBackend;
 
+    /**
+     * Constructor.
+     *
+     * @param KopanoDavBackend $kdavBackend
+     */
     public function __construct(KopanoDavBackend $kdavBackend) {
         $this->kdavBackend = $kdavBackend;
     }

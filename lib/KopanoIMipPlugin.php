@@ -31,6 +31,12 @@
 namespace Kopano\DAV;
 
 class KopanoIMipPlugin extends \Sabre\CalDAV\Schedule\IMipPlugin {
+    /**
+     * Constructor.
+     *
+     * @param KopanoDavBackend $kDavBackend
+     * @param KLogger $klogger
+     */
     public function __construct(KopanoDavBackend $kDavBackend, KLogger $klogger) {
         $this->kDavBackend = $kDavBackend;
         $this->logger = $klogger;

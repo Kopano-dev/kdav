@@ -39,6 +39,15 @@ class PHPWrapper {
     private $modified;
     private $deleted;
 
+    /**Constructor.
+     *
+     * @param MAPIStore $store
+     * @param KLogger $logger
+     * @param mixed $props
+     * @param string $fileext
+     * @param KopanoSyncState $syncstate
+     * @param string $folderid
+     */
     public function __construct($store, $logger, $props, $fileext, $syncstate, $folderid) {
         $this->store = $store;
         $this->logger = $logger;

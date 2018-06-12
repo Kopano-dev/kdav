@@ -38,6 +38,11 @@ class KopanoDavBackend {
     protected $customprops;
     protected $syncstate;
 
+    /**
+     * Constructor.
+     *
+     * @param KLogger $klogger
+     */
     public function __construct(KLogger $klogger) {
         $this->logger = $klogger;
         $this->syncstate = new KopanoSyncState($klogger, SYNC_DB);
@@ -82,6 +87,7 @@ class KopanoDavBackend {
     /**
      * Create a folder with MAPI class.
      *
+     * @param mixed $principalUri
      * @param string $url
      * @param string $class
      * @param string $displayname
@@ -98,9 +104,7 @@ class KopanoDavBackend {
     /**
      * Delete a folder with MAPI class.
      *
-     * @param string $url
-     * @param string $class
-     * @param string $displayname
+     * @param mixed $id
      * @return bool
      */
     public function DeleteFolder($id) {
@@ -175,8 +179,7 @@ class KopanoDavBackend {
      *
      * @param string $id
      * @param string $fileExtension
-     * @param long $start
-     * @param long $end
+     * @param array $filters
      * @return array
      */
     public function GetObjects($id, $fileExtension, $filters = array()) {
@@ -243,6 +246,7 @@ class KopanoDavBackend {
     /**
      * Create the object and set appttsref.
      *
+     * @param mixed $folderId
      * @param string $folder
      * @param string $objectId
      * @return mapiresource
@@ -346,11 +350,20 @@ class KopanoDavBackend {
         return $this->stores[$storename];
     }
 
+    /**
+     * Returns store from the id.
+     * @param mixed $id
+     * @return \Kopano\DAV\MAPIStore|false on error
+     */
     public function GetStoreById($id) {
         $arr = explode(':', $id);
         return $this->GetStore($arr[0]);
     }
 
+    /**
+     * Returns logon session.
+     * @return MAPISession
+     */
     public function GetSession() {
         return $this->session;
     }

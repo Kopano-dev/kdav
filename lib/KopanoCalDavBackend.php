@@ -47,6 +47,12 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
     const CONTAINER_CLASS = 'IPF.Appointment';
     const CONTAINER_CLASSES = array('IPF.Appointment', 'IPF.Task');
 
+    /**
+     * Constructor.
+     *
+     * @param KopanoDavBackend $kDavBackend
+     * @param KLogger $klogger
+     */
     public function __construct(KopanoDavBackend $kDavBackend, KLogger $klogger) {
         $this->kDavBackend = $kDavBackend;
         $this->logger = $klogger;
@@ -58,6 +64,7 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
      * Uses the FreeBusyPublish class to publish the information
      * about free/busy status.
      *
+     * @param string $calendarId
      * @param mapiresource $calendar
      * @return void
      */
@@ -380,6 +387,14 @@ class KopanoCalDavBackend extends \Sabre\CalDAV\Backend\AbstractBackend implemen
         return '"' . $retval . '"';
     }
 
+    /**
+     * Sets data for a calendar item.
+     *
+     * @param mixed $calendarId
+     * @param MAPIMessage $mapimessage
+     * @param string $ics
+     * @return string|null
+     */
     private function setData($calendarId, $mapimessage, $ics) {
         $this->logger->trace("mapimessage: %s - ics: %s", $mapimessage, $ics);
         // this should be cached or moved to kDavBackend
