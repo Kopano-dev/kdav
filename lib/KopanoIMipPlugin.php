@@ -31,6 +31,12 @@
 namespace Kopano\DAV;
 
 class KopanoIMipPlugin extends \Sabre\CalDAV\Schedule\IMipPlugin {
+    /**
+     * Constructor.
+     *
+     * @param KopanoDavBackend $kDavBackend
+     * @param KLogger $klogger
+     */
     public function __construct(KopanoDavBackend $kDavBackend, KLogger $klogger) {
         $this->kDavBackend = $kDavBackend;
         $this->logger = $klogger;
@@ -78,8 +84,9 @@ class KopanoIMipPlugin extends \Sabre\CalDAV\Schedule\IMipPlugin {
         $recipientRows = mapi_table_queryallrows($recipientTable, array(PR_SMTP_ADDRESS, PR_ROWID));
         $removeRecipients = array();
         foreach ($recipientRows as $key => $recip) {
-            if (!isset($recip[PR_SMTP_ADDRESS]))
+            if (!isset($recip[PR_SMTP_ADDRESS])) {
                 continue;
+            }
             if (strcasecmp($recip[PR_SMTP_ADDRESS], $recipient) != 0) {
                 $removeRecipients[] = $recip;
             }
@@ -88,8 +95,9 @@ class KopanoIMipPlugin extends \Sabre\CalDAV\Schedule\IMipPlugin {
             $this->logger->error("message will have no recipients. List to remove: %s - recipientRows: %s", $removeRecipients, $recipientRows);
             return;
         }
-        if (count($removeRecipients) > 0)
+        if (count($removeRecipients) > 0) {
             mapi_message_modifyrecipients($newmessage, MODRECIP_REMOVE, $removeRecipients);
+        }
 
         /* save message and send */
         mapi_savechanges($newmessage);

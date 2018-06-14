@@ -55,7 +55,7 @@ $kdavBackend = new KopanoDavBackend(new KLogger(('dav')));
 $authBackend = new AuthBasicBackend($kdavBackend);
 $authBackend->setRealm(SABRE_AUTH_REALM);
 $principalBackend = new PrincipalsBackend($kdavBackend);
-$kCarddavBackend   = new KopanoCardDavBackend($kdavBackend, new KLogger('card'));
+$kCarddavBackend  = new KopanoCardDavBackend($kdavBackend, new KLogger('card'));
 $kCaldavBackend   = new KopanoCalDavBackend($kdavBackend, new KLogger('cal'));
 
 // Setting up the directory tree

@@ -38,13 +38,18 @@ class KopanoDavBackend {
     protected $customprops;
     protected $syncstate;
 
+    /**
+     * Constructor.
+     *
+     * @param KLogger $klogger
+     */
     public function __construct(KLogger $klogger) {
         $this->logger = $klogger;
         $this->syncstate = new KopanoSyncState($klogger, SYNC_DB);
     }
 
     /**
-     * Connect to Kopano and initialize store.
+     * Connect to Kopano and create session.
      *
      * @param String $user
      * @param String $pass
@@ -80,8 +85,9 @@ class KopanoDavBackend {
     }
 
     /**
-     * Create a folder with MAPI class
+     * Create a folder with MAPI class.
      *
+     * @param mixed $principalUri
      * @param string $url
      * @param string $class
      * @param string $displayname
@@ -96,17 +102,16 @@ class KopanoDavBackend {
     }
 
     /**
-     * Delete a folder with MAPI class
+     * Delete a folder with MAPI class.
      *
-     * @param string $url
-     * @param string $class
-     * @param string $displayname
+     * @param mixed $id
      * @return bool
      */
     public function DeleteFolder($id) {
         $folder = $this->GetMapiFolder($id);
-        if (!$folder)
+        if (!$folder) {
             return false;
+        }
 
         $props = mapi_getprops($folder, array(PR_ENTRYID, PR_PARENT_ENTRYID));
         $parentfolder = mapi_msgstore_openentry($this->GetStoreById($id), $props[PR_PARENT_ENTRYID]);
@@ -142,8 +147,9 @@ class KopanoDavBackend {
 
         $rootprops = mapi_getprops($rootfolder, array(PR_IPM_CONTACT_ENTRYID));
         foreach ($rows as $row) {
-            if ($row[PR_FOLDER_TYPE] == FOLDER_SEARCH)
+            if ($row[PR_FOLDER_TYPE] == FOLDER_SEARCH) {
                 continue;
+            }
 
             $folder = [
                 'id'           => $principalUri . ":" . bin2hex($row[PR_SOURCE_KEY]),
@@ -157,10 +163,12 @@ class KopanoDavBackend {
             // ensure default contacts folder is put first, some clients
             // i.e. Apple Addressbook only supports one contact folder,
             // therefore it is desired that folder is the default one.
-            if (in_array("IPF.Contact", $classes) && isset($rootprops[PR_IPM_CONTACT_ENTRYID]) && $row[PR_ENTRYID] == $rootprops[PR_IPM_CONTACT_ENTRYID])
+            if (in_array("IPF.Contact", $classes) && isset($rootprops[PR_IPM_CONTACT_ENTRYID]) && $row[PR_ENTRYID] == $rootprops[PR_IPM_CONTACT_ENTRYID]) {
                 array_unshift($folders, $folder);
-            else
+            }
+            else {
                 array_push($folders, $folder);
+            }
         }
         $this->logger->trace('found %d folders: %s', count($folders), $folders);
         return $folders;
@@ -171,8 +179,7 @@ class KopanoDavBackend {
      *
      * @param string $id
      * @param string $fileExtension
-     * @param long $start
-     * @param long $end
+     * @param array $filters
      * @return array
      */
     public function GetObjects($id, $fileExtension, $filters = array()) {
@@ -180,7 +187,7 @@ class KopanoDavBackend {
         $properties = $this->GetCustomProperties($id);
         $table = mapi_folder_getcontentstable($folder, MAPI_DEFERRED_ERRORS);
 
-        $restrictions = Array();
+        $restrictions = array();
         if (isset($filters['start'], $filters['end'])) {
             $this->logger->trace("got start: %d and end: %d", $filters['start'], $filters['end']);
             $subrestriction = $this->GetCalendarRestriction($this->GetStoreById($id), $filters['start'], $filters['end']);
@@ -188,19 +195,19 @@ class KopanoDavBackend {
         }
         if (isset($filters['types'])) {
             $this->logger->trace("got types: %s", $filters['types']);
-            $arr = Array();
+            $arr = array();
             foreach ($filters['types'] as $filter) {
-                $arr[] = Array(RES_PROPERTY,
-                      Array(RELOP => RELOP_EQ,
+                $arr[] = array(RES_PROPERTY,
+                      array(RELOP => RELOP_EQ,
                             ULPROPTAG => PR_MESSAGE_CLASS,
                             VALUE => $filter
                       )
                 );
             }
-            $restrictions[] = Array(RES_OR, $arr);
+            $restrictions[] = array(RES_OR, $arr);
         }
         if (!empty($restrictions)) {
-            $restriction = Array(RES_AND, $restrictions);
+            $restriction = array(RES_AND, $restrictions);
             $this->logger->trace("Got restriction: %s", $restriction);
             mapi_table_restrict($table, $restriction);
         }
@@ -212,7 +219,8 @@ class KopanoDavBackend {
             $realId = "";
             if (isset($row[$properties['appttsref']])) {
                 $realId = $row[$properties['appttsref']];
-            } else {
+            }
+            else {
                 $realId = bin2hex($row[PR_SOURCE_KEY]);
             }
 
@@ -226,7 +234,8 @@ class KopanoDavBackend {
 
             if ($fileExtension == KopanoCalDavBackend::FILE_EXTENSION) {
                 $result['calendarid'] = $id;
-            } elseif ($fileExtension == KopanoCardDavBackend::FILE_EXTENSION) {
+            }
+            elseif ($fileExtension == KopanoCardDavBackend::FILE_EXTENSION) {
                 $result['addressbookid'] = $id;
             }
             $results[] = $result;
@@ -237,6 +246,7 @@ class KopanoDavBackend {
     /**
      * Create the object and set appttsref.
      *
+     * @param mixed $folderId
      * @param string $folder
      * @param string $objectId
      * @return mapiresource
@@ -262,32 +272,46 @@ class KopanoDavBackend {
         return mapi_msgstore_openentry($this->GetStore($arr[0]), $entryid);
     }
 
+    /**
+     * Returns MAPI addressbook.
+     *
+     * @return MAPIAddressbook
+     */
     public function GetAddressBook() {
-        // TODO could be a singleton
+        // TODO should be a singleton
         return mapi_openaddressbook($this->session);
     }
 
-    public function GetMapiStore($username = null) {
+    /**
+     * Opens MAPI store for the user.
+     *
+     * @param string $username
+     * @return MAPIStore|false if store not available
+     */
+    public function OpenMapiStore($username = null) {
         $msgstorestable = mapi_getmsgstorestable($this->session);
         $msgstores = mapi_table_queryallrows($msgstorestable, array(PR_DEFAULT_STORE, PR_ENTRYID, PR_MDB_PROVIDER));
 
         $defaultstore = null;
         $publicstore = null;
         foreach ($msgstores as $row) {
-            if (isset($row[PR_DEFAULT_STORE]) && $row[PR_DEFAULT_STORE])
+            if (isset($row[PR_DEFAULT_STORE]) && $row[PR_DEFAULT_STORE]) {
                 $defaultstore = $row[PR_ENTRYID];
-            if (isset($row[PR_MDB_PROVIDER]) && $row[PR_MDB_PROVIDER] == KOPANO_STORE_PUBLIC_GUID)
+            }
+            if (isset($row[PR_MDB_PROVIDER]) && $row[PR_MDB_PROVIDER] == KOPANO_STORE_PUBLIC_GUID) {
                 $publicstore = $row[PR_ENTRYID];
+            }
         }
 
         /* user's own store or public store */
         if ($username == $this->GetUser() && $defaultstore != null) {
             return mapi_openmsgstore($this->session, $defaultstore);
-        } elseif ($username == 'public' && $publicstore != null) {
+        }
+        if ($username == 'public' && $publicstore != null) {
             return mapi_openmsgstore($this->session, $publicstore);
         }
 
-        /* otherwise other users store */
+        /* otherwise other user's store */
         $store = mapi_openmsgstore($this->session, $defaultstore);
         if (!$store) {
             return false;
@@ -297,10 +321,17 @@ class KopanoDavBackend {
     }
 
 
+    /**
+     * Returns store for the user.
+     *
+     * @param string $storename
+     * @return MAPIStore|false if the store is not available
+     */
     public function GetStore($storename) {
         if ($storename == null) {
             $storename = $this->GetUser();
-        } else {
+        }
+        else {
             $storename = str_replace('principals/', '', $storename);
         }
         $this->logger->trace("storename %s", $storename);
@@ -311,29 +342,39 @@ class KopanoDavBackend {
             return $this->stores[$storename];
         }
 
-        $this->stores[$storename] = $this->GetMapiStore($storename);
+        $this->stores[$storename] = $this->OpenMapiStore($storename);
         if (!$this->stores[$storename]) {
-            $this->logger->info("Auth: ERROR - unable to open store for %s", $storename);
+            $this->logger->info("Auth: ERROR - unable to open store for %s (0x%08X)", $storename, mapi_last_hresult());
             return false;
         }
         return $this->stores[$storename];
     }
 
+    /**
+     * Returns store from the id.
+     * @param mixed $id
+     * @return \Kopano\DAV\MAPIStore|false on error
+     */
     public function GetStoreById($id) {
         $arr = explode(':', $id);
         return $this->GetStore($arr[0]);
     }
 
+    /**
+     * Returns logon session.
+     * @return MAPISession
+     */
     public function GetSession() {
         return $this->session;
     }
 
     /**
-     * Returns a object ID of a mapi object.
+     * Returns an object ID of a mapi object.
      * If set, PROP_APPTTSREF will be preferred. If not the PR_SOURCE_KEY of the message (as hex) will be returned.
      *
      * This order is reflected as well when searching for a message with these ids in KopanoDavBackend->GetMapiMessageForId().
      *
+     * @param string $folderId
      * @param mapiresource $mapimessage
      * @return string
      */
@@ -349,12 +390,10 @@ class KopanoDavBackend {
             $this->logger->debug("Found PROP_APPTTSREF: %s", $props[$properties['appttsref']]);
             return $props[$properties['appttsref']];
         }
-        // is always available
-        else {
-            $id = bin2hex($props[PR_SOURCE_KEY]);
-            $this->logger->debug("Found PR_SOURCE_KEY: %s", $id);
-            return $id;
-        }
+        // PR_SOURCE_KEY is always available
+        $id = bin2hex($props[PR_SOURCE_KEY]);
+        $this->logger->debug("Found PR_SOURCE_KEY: %s", $id);
+        return $id;
     }
 
     /**
@@ -394,8 +433,8 @@ class KopanoDavBackend {
         if (!$entryid) {
             $this->logger->trace("Try APPTTSREF %s", $id);
             $properties = $this->GetCustomProperties($calendarId);
-            $restriction = Array(RES_PROPERTY,
-                                 Array(RELOP => RELOP_EQ,
+            $restriction = array(RES_PROPERTY,
+                                 array(RELOP => RELOP_EQ,
                                        ULPROPTAG => $properties["appttsref"],
                                        VALUE => $id
                                      )
@@ -417,7 +456,7 @@ class KopanoDavBackend {
         }
         if ($entryid) {
             $mapimessage = mapi_msgstore_openentry($this->GetStoreById($calendarId), $entryid);
-            if(!$mapimessage) {
+            if (!$mapimessage) {
                 $this->logger->warn("Error, unable to open entry id: 0x%X", $entryid, mapi_last_hresult());
                 return null;
             }
@@ -470,7 +509,7 @@ class KopanoDavBackend {
     }
 
     /**
-     * Get named (custom) properties. Currently only PROP_APPTTSREF
+     * Get named (custom) properties. Currently only PROP_APPTTSREF.
      *
      * @param string    $id    the folder id
      *
@@ -504,21 +543,20 @@ class KopanoDavBackend {
         $props = MAPIProps::GetAppointmentProperties();
         $props = getPropIdsFromStrings($store, $props);
 
-        // ATTENTION: ON CHANGING THIS RESTRICTION, MAPIUtils::IsInCalendarSyncInterval() also needs to be changed
-        $restriction = Array(RES_OR,
-             Array(
+        $restriction = array(RES_OR,
+             array(
                    // OR
                    // item.end > window.start && item.start < window.end
-                   Array(RES_AND,
-                         Array(
-                               Array(RES_PROPERTY,
-                                     Array(RELOP => RELOP_LE,
+                   array(RES_AND,
+                         array(
+                               array(RES_PROPERTY,
+                                     array(RELOP => RELOP_LE,
                                            ULPROPTAG => $props["starttime"],
                                            VALUE => $end
                                            )
                                      ),
-                               Array(RES_PROPERTY,
-                                     Array(RELOP => RELOP_GE,
+                               array(RES_PROPERTY,
+                                     array(RELOP => RELOP_GE,
                                            ULPROPTAG => $props["endtime"],
                                            VALUE => $start
                                            )
@@ -526,24 +564,24 @@ class KopanoDavBackend {
                                )
                          ),
                    // OR
-                   Array(RES_OR,
-                         Array(
+                   array(RES_OR,
+                         array(
                                // OR
                                // (EXIST(recurrence_enddate_property) && item[isRecurring] == true && recurrence_enddate_property >= start)
-                               Array(RES_AND,
-                                     Array(
-                                           Array(RES_EXIST,
-                                                 Array(ULPROPTAG => $props["recurrenceend"],
+                               array(RES_AND,
+                                     array(
+                                           array(RES_EXIST,
+                                                 array(ULPROPTAG => $props["recurrenceend"],
                                                        )
                                                  ),
-                                           Array(RES_PROPERTY,
-                                                 Array(RELOP => RELOP_EQ,
+                                           array(RES_PROPERTY,
+                                                 array(RELOP => RELOP_EQ,
                                                        ULPROPTAG => $props["isrecurring"],
                                                        VALUE => true
                                                        )
                                                  ),
-                                           Array(RES_PROPERTY,
-                                                 Array(RELOP => RELOP_GE,
+                                           array(RES_PROPERTY,
+                                                 array(RELOP => RELOP_GE,
                                                        ULPROPTAG => $props["recurrenceend"],
                                                        VALUE => $start
                                                        )
@@ -552,24 +590,24 @@ class KopanoDavBackend {
                                      ),
                                // OR
                                // (!EXIST(recurrence_enddate_property) && item[isRecurring] == true && item[start] <= end)
-                               Array(RES_AND,
-                                     Array(
-                                           Array(RES_NOT,
-                                                 Array(
-                                                       Array(RES_EXIST,
-                                                             Array(ULPROPTAG => $props["recurrenceend"]
+                               array(RES_AND,
+                                     array(
+                                           array(RES_NOT,
+                                                 array(
+                                                       array(RES_EXIST,
+                                                             array(ULPROPTAG => $props["recurrenceend"]
                                                                    )
                                                              )
                                                        )
                                                  ),
-                                           Array(RES_PROPERTY,
-                                                 Array(RELOP => RELOP_LE,
+                                           array(RES_PROPERTY,
+                                                 array(RELOP => RELOP_LE,
                                                        ULPROPTAG => $props["starttime"],
                                                        VALUE => $end
                                                        )
                                                  ),
-                                           Array(RES_PROPERTY,
-                                                 Array(RELOP => RELOP_EQ,
+                                           array(RES_PROPERTY,
+                                                 array(RELOP => RELOP_EQ,
                                                        ULPROPTAG => $props["isrecurring"],
                                                        VALUE => true
                                                        )
@@ -591,11 +629,12 @@ class KopanoDavBackend {
      * @param string $folderId
      * @param string $syncToken
      * @param string $fileExtension
+     * @param int $limit
      *
      * @access public
      * @return array
      */
-    public function Sync($folderId, $syncToken, $fileExtension) {
+    public function Sync($folderId, $syncToken, $fileExtension, $limit = null) {
         $arr = explode(':', $folderId);
         $phpwrapper = new PHPWrapper($this->GetStoreById($folderId), $this->logger, $this->GetCustomProperties($folderId), $fileExtension, $this->syncstate, $arr[1]);
         $mapiimporter = mapi_wrap_importcontentschanges($phpwrapper);
@@ -610,7 +649,8 @@ class KopanoDavBackend {
         $stream = mapi_stream_create();
         if ($syncToken == null) {
             mapi_stream_write($stream, hex2bin("0000000000000000"));
-        } else {
+        }
+        else {
             $value = $this->syncstate->getState($arr[1], $syncToken);
             if ($value == null) {
                 $this->logger->error("Unable to get value from token: %s - folderId: %s", $syncToken, $folderId);
@@ -619,31 +659,37 @@ class KopanoDavBackend {
             mapi_stream_write($stream, hex2bin($value));
         }
 
-        mapi_exportchanges_config($exporter, $stream, SYNC_NORMAL | SYNC_UNICODE, $mapiimporter, null, false, false, 0);
-        while(($syncresult = mapi_exportchanges_synchronize($exporter))) {
-            if (!is_array($syncresult))
+        // The last parameter in mapi_exportchanges_config is buffer size for mapi_exportchanges_synchronize - how many
+        // changes will be processed in its call. Setting it to MAX_SYNC_ITEMS won't export more items than is set in
+        // the config. If there are more changes than MAX_SYNC_ITEMS the client will eventually catch up and sync
+        // the rest on the subsequent sync request(s).
+        $bufferSize = ($limit !== null && $limit > 0) ? $limit : MAX_SYNC_ITEMS;
+        mapi_exportchanges_config($exporter, $stream, SYNC_NORMAL | SYNC_UNICODE, $mapiimporter, null, false, false, $bufferSize);
+        $changesCount = mapi_exportchanges_getchangecount($exporter);
+        $this->logger->debug("Exporter found %d changes, buffer size for mapi_exportchanges_synchronize %d", $changesCount, $bufferSize);
+        while ((is_array(mapi_exportchanges_synchronize($exporter)))) {
+            if ($changesCount > $bufferSize) {
+                $this->logger->info("There were too many changes to be exported in this request. Total changes %d, exported %d.", $changesCount, $phpwrapper->Total());
                 break;
-            $this->logger->trace("syncing total is %d", $phpwrapper->Total());
-            if ($phpwrapper->Total() > 1000)
-                break;
+            }
         }
-        $this->logger->trace("sync result %s", $syncresult);
+        $exportedChanges = $phpwrapper->Total();
+        $this->logger->debug("Exported %d changes, pending %d", $exportedChanges, $changesCount - $exportedChanges);
 
         mapi_exportchanges_updatestate($exporter, $stream);
         mapi_stream_seek($stream, 0, STREAM_SEEK_SET);
         $state = "";
         while (true) {
             $data = mapi_stream_read($stream, 4096);
-            if (strlen($data) > 0)
+            if (strlen($data) > 0) {
                 $state .= $data;
-            else
+            }
+            else {
                 break;
+            }
         }
 
-        if ($phpwrapper->Total() > 0)
-            $newtoken = uniqid();
-        else
-            $newtoken = $syncToken;
+        $newtoken = ($phpwrapper->Total() > 0) ? uniqid() : $syncToken;
 
         $this->syncstate->setState($arr[1], $newtoken, bin2hex($state));
 

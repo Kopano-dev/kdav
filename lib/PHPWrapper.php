@@ -39,6 +39,16 @@ class PHPWrapper {
     private $modified;
     private $deleted;
 
+    /**
+     * Constructor.
+     *
+     * @param MAPIStore $store
+     * @param KLogger $logger
+     * @param mixed $props
+     * @param string $fileext
+     * @param KopanoSyncState $syncstate
+     * @param string $folderid
+     */
     public function __construct($store, $logger, $props, $fileext, $syncstate, $folderid) {
         $this->store = $store;
         $this->logger = $logger;
@@ -105,19 +115,23 @@ class PHPWrapper {
     public function ImportMessageChange($props, $flags, $retmapimessage) {
         $mapimessage = mapi_msgstore_openentry($this->store, $props[PR_ENTRYID]);
         $messageProps = mapi_getprops($mapimessage, array(PR_SOURCE_KEY, $this->props["appttsref"]));
-        $this->logger->trace("got %s (appttsref: %s), flags: %d\n", bin2hex($messageProps[PR_SOURCE_KEY]), $messageProps[$this->props["appttsref"]], $flags);
+
         if (isset($messageProps[$this->props["appttsref"]])) {
-            $appttsref = $messageProps[$this->props["appttsref"]];
-            $this->syncstate->rememberAppttsref($this->folderid, bin2hex($messageProps[PR_SOURCE_KEY]), $appttsref);
-            $url = $appttsref;
-        } else {
+            $this->logger->trace("got %s (appttsref: %s), flags: %d", bin2hex($messageProps[PR_SOURCE_KEY]), $messageProps[$this->props["appttsref"]], $flags);
+            $this->syncstate->rememberAppttsref($this->folderid, bin2hex($messageProps[PR_SOURCE_KEY]), $messageProps[$this->props["appttsref"]]);
+            $url = $messageProps[$this->props["appttsref"]];
+        }
+        else {
+            $this->logger->trace("got %s, flags: %d", bin2hex($messageProps[PR_SOURCE_KEY]), $flags);
             $url = bin2hex($messageProps[PR_SOURCE_KEY]);
         }
 
-        if ($flags == SYNC_NEW_MESSAGE)
+        if ($flags == SYNC_NEW_MESSAGE) {
             $this->added[] = $url . $this->fileext;
-        else
+        }
+        else {
             $this->modified[] = $url . $this->fileext;
+        }
 
         return SYNC_E_IGNORE;
     }
@@ -137,7 +151,8 @@ class PHPWrapper {
             $appttsref = $this->syncstate->getAppttsref($this->folderid, bin2hex($sourcekey));
             if ($appttsref != null) {
                 $this->deleted[] = $appttsref . $this->fileext;
-            } else {
+            }
+            else {
                 $this->deleted[] = bin2hex($sourcekey) . $this->fileext;
             }
         }
@@ -147,8 +162,8 @@ class PHPWrapper {
     public function Config($stream, $flags = 0) {}
     public function GetLastError($hresult, $ulflags, &$lpmapierror) {}
     public function UpdateState($stream) {}
-    public function ImportMessageMove($sourcekeysrcfolder, $sourcekeysrcmessage, $message, $sourcekeydestmessage, $changenumdestmessage) { }
-    public function ImportPerUserReadStateChange($readstates) { }
+    public function ImportMessageMove($sourcekeysrcfolder, $sourcekeysrcmessage, $message, $sourcekeydestmessage, $changenumdestmessage) {}
+    public function ImportPerUserReadStateChange($readstates) {}
     public function ImportFolderChange($props) {return 0;}
     public function ImportFolderDeletion($flags, $sourcekeys) {return 0;}
 }

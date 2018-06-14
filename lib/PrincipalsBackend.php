@@ -34,6 +34,11 @@ class PrincipalsBackend implements \Sabre\DAVACL\PrincipalBackend\BackendInterfa
 
     protected $kdavBackend;
 
+    /**
+     * Constructor.
+     *
+     * @param KopanoDavBackend $kdavBackend
+     */
     public function __construct(KopanoDavBackend $kdavBackend) {
         $this->kdavBackend = $kdavBackend;
     }
@@ -82,7 +87,8 @@ class PrincipalsBackend implements \Sabre\DAVACL\PrincipalBackend\BackendInterfa
         }
         if ($path === 'principals') {
             $username = $this->kdavBackend->GetUser();
-        } else {
+        }
+        else {
             $username = str_replace('principals/', '', $path);
         }
         $userinfo = mapi_zarafa_getuser_by_name($this->kdavBackend->GetStore($username), $username);

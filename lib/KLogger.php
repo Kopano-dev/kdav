@@ -421,7 +421,7 @@ class KLogger {
     }
 
     /**
-     * Log a message object with the WARN level.
+     * Log a message object with the FATAL level.
      * It has the same footprint as sprintf(), but arguments are only processed
      * if the loglevel is activated.
      *

@@ -33,20 +33,24 @@ namespace Kopano\DAV;
 class KopanoSyncState {
     private $db;
 
+    /**
+     * Constructor.
+     *
+     * @param KLogger $logger
+     * @param string $dbstring
+     */
     public function __construct($logger, $dbstring) {
         $this->logger = $logger;
         $this->logger->trace("Using db %s", $dbstring);
         $this->db = new \PDO($dbstring);
 
         $query = "CREATE TABLE IF NOT EXISTS kdav_sync_state (
-             id VARCHAR(255), folderid VARCHAR(255), value TEXT,
-             PRIMARY KEY (id, folderid));";
-        $this->db->exec($query);
+            id VARCHAR(255), folderid VARCHAR(255), value TEXT,
+            PRIMARY KEY (id, folderid));
+            CREATE TABLE IF NOT EXISTS kdav_sync_appttsref (
+            sourcekey VARCHAR(255), folderid VARCHAR(255), appttsref VARCHAR(255),
+            PRIMARY KEY (sourcekey, folderid));";
 
-        $query = "CREATE TABLE IF NOT EXISTS kdav_sync_appttsref (
-             sourcekey VARCHAR(255), folderid VARCHAR(255),
-             appttsref VARCHAR(255),
-             PRIMARY KEY (sourcekey, folderid));";
         $this->db->exec($query);
     }
 
@@ -66,8 +70,9 @@ class KopanoSyncState {
         $statement->bindParam(":id", $id);
         $statement->execute();
         $result = $statement->fetch();
-        if (!$result)
+        if (!$result) {
             return null;
+        }
         return $result['value'];
     }
 
@@ -77,6 +82,7 @@ class KopanoSyncState {
      *
      * @param string $folderid
      * @param string $id
+     * @param string $value
      *
      * @access public
      * @return void
@@ -95,7 +101,7 @@ class KopanoSyncState {
      * This is needed for detecting the URL of deleted items reported by ICS.
      *
      * @param string $folderid
-     * @param string $id
+     * @param string $sourcekey
      * @param string $appttsref
      *
      * @access public
@@ -115,7 +121,7 @@ class KopanoSyncState {
      * This is needed for detecting the URL of deleted items reported by ICS.
      *
      * @param string $folderid
-     * @param string $id
+     * @param string $sourcekey
      *
      * @access public
      * @return string
@@ -127,8 +133,9 @@ class KopanoSyncState {
         $statement->bindParam(":sourcekey", $sourcekey);
         $statement->execute();
         $result = $statement->fetch();
-        if (!$result)
+        if (!$result) {
             return null;
+        }
         return $result['appttsref'];
     }
 }
