@@ -39,7 +39,8 @@ class PHPWrapper {
     private $modified;
     private $deleted;
 
-    /**Constructor.
+    /**
+     * Constructor.
      *
      * @param MAPIStore $store
      * @param KLogger $logger

@@ -344,7 +344,7 @@ class KopanoDavBackend {
 
         $this->stores[$storename] = $this->OpenMapiStore($storename);
         if (!$this->stores[$storename]) {
-            $this->logger->info("Auth: ERROR - unable to open store for %s (0x%X)", $storename, mapi_last_hresult());
+            $this->logger->info("Auth: ERROR - unable to open store for %s (0x%08X)", $storename, mapi_last_hresult());
             return false;
         }
         return $this->stores[$storename];
