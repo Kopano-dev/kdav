@@ -35,7 +35,7 @@ so that it points directly to the `server.php` file.
 This is the simplest way to setup, running at port 8123:
 
 ```
-<VirtualHost *:8123>
+<VirtualHost *:443>
     DocumentRoot /your-kdav-working-directory/kdav
     ServerName develop.local
 
@@ -105,7 +105,7 @@ good idea to configure logrotate utility for kdav.log e.g by creating
 }
 ```
 
-kopano-sabredav also requires some php mapi classes. The easiest is to just symlink them:
+kopano-dav also requires some php mapi classes. The easiest is to just symlink them:
 
 ```
 ln -s /usr/share/kopano/php/mapi /var/www/kdav
