@@ -31,6 +31,9 @@ Then just do
 # ./composer.phar install
 ```
 
+kDAV makes use of sqlite to manage sync states. Make sure that your php
+version has a module for it.
+
 ### kDAV configuration
 
 All configs are handled in the `config.php` file. Adjust `MAPI_SERVER`
@@ -39,7 +42,7 @@ match your webserver configuration, so that it points directly to the
 `server.php` file. The default value can be kept if kDAV runs in the
 root of the domain.
 
-This is the simplest way to setup, running at port 443:
+This is the simplest way to setup, running with Apache at port 443:
 
 ```
 <VirtualHost *:443>
@@ -80,6 +83,8 @@ This is the simplest way to setup, running at port 443:
 
 </VirtualHost>
 ```
+
+Remember to enable `mod_rewrite`.
 
 SSL is strongly recommended if you use real passwords.
 
