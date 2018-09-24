@@ -31,9 +31,6 @@ Then just do
 # ./composer.phar install
 ```
 
-kDAV makes use of sqlite to manage sync states. Make sure that your php
-version has a module for it.
-
 ### kDAV configuration
 
 All configs are handled in the `config.php` file. Adjust `MAPI_SERVER`
@@ -87,6 +84,15 @@ This is the simplest way to setup, running with Apache at port 443:
 Remember to enable `mod_rewrite`.
 
 SSL is strongly recommended if you use real passwords.
+
+### Sync states
+
+kDAV makes use of sqlite to manage sync states. Make sure that your php
+version has a module for it.
+
+The default location for the sync states db is
+`/var/lib/kopano/kdav/syncstate.db`. This location should be writeable
+for the webserver process (e.g. `www-data` on Debian).
 
 ### log4php configuration
 
