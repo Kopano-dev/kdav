@@ -83,10 +83,12 @@ This is the simplest way to setup, running at port 443:
 
 SSL is strongly recommended if you use real passwords.
 
-### log4php configuration kDAV uses Apache's log4php for logging. The
-configuration file is `log4php.xml` located in the root folder. The
-default log location is `/var/log/kdav/kdav.log`. It is required to
-create the log directory first:
+### log4php configuration
+
+kDAV uses Apache's log4php for logging. The configuration file is
+`log4php.xml` located in the root folder. The default log location is
+`/var/log/kdav/kdav.log`. It is required to create the log directory
+first:
 
 ```
 mkdir -p /var/log/kdav
