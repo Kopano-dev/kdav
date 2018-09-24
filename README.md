@@ -27,12 +27,13 @@ It's recommend to install composer locally into the main kDAV directory. Then ju
 
 ### kDAV configuration
 
-All configs are handled in the `config.php` file.
-Adjust `MAPI_SERVER` to connect to your Kopano instance.
-The `DAV_ROOT_URI` parameter must match your webserver configuration,
-so that it points directly to the `server.php` file.
+All configs are handled in the `config.php` file. Adjust `MAPI_SERVER`
+to connect to your Kopano instance. The `DAV_ROOT_URI` parameter must
+match your webserver configuration, so that it points directly to the
+`server.php` file. The default value can be kept if kDAV runs in the
+root of the domain.
 
-This is the simplest way to setup, running at port 8123:
+This is the simplest way to setup, running at port 443:
 
 ```
 <VirtualHost *:443>
