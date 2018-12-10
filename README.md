@@ -182,6 +182,37 @@ parameter, e.g.:
 ./phpunit tests\KopanoCardDavBackendTest
 ```
 
+## Q & A
+
+Q: Which version of Kopano do I need?
+A: It's recommended to install Kopano 8.6.2 (soon available from the pre-final repo) or a recent master
+
+Q: Which version of PHP is needed?
+A: We recommend to use PHP7, but currently it also still works with PHP 5.6
+
+Q: Will there be deb & rpm packages?
+A: Yes, once we have received enough feedback and kDAV is moving towards a final release we will also add packages.
+
+Q: Which clients were tested against kDAV?
+A: We have focused our testing on Apple OS X and the builtin Calendar, Contact and Reminders apps. But we have already received positive feedback about Thunderbird/Lightning and Evolution as well.
+
+Q: How do I configure clients for kDAV?
+A: From the `Internet Account` setting screen you have to choose `Add Other Account...` from where the options `CalDAV Account` and `CardDAV Account` become available. The option for the `Advanced` account type has to be chosen in both cases, since we want to specify the `Server Address` manually. For the `Server Path` a simple `/` can be given, as Apple Calendars will auto discover all the calendars of the given user automatically. If you ever want to link to a specific calendar from another client, the address kDAV is available from (in above example `kdav.example.com`) can also be opened in a webbrowser.
+
+A picture is sometimes more worth than a thousand words:
+Calendar & Reminder setup:
+![0_1525700254010_CalDAV1.PNG](/doc/1525700235852-caldav1.png)
+![1_1525700254010_CalDAV2.PNG](/doc/1525700235779-caldav2.png)
+![2_1525700254011_CalDAV3.PNG](/doc/1525700235820-caldav3.png)
+![3_1525700254011_CalDAV4.PNG](/doc/1525700235824-caldav4.png)
+
+Contact setup:
+![0_1525700327110_CardDAV1.PNG](/doc/1525700308502-carddav1.png)
+![1_1525700327111_CardDAV2.PNG](/doc/700308526-carddav2.png)
+![2_1525700327111_CardDAV3.PNG](/doc/1525700308550-carddav3.png)
+
+Q: That seems really hard to setup at clients. Isn't there any easier way?
+A: Yes, there is. You could setup kDAV for service discovery. Visit http://sabre.io/dav/service-discovery/ for more information.
 ## Known Issues
 
 - there were reports about syncing on Apple devices taking a very long
