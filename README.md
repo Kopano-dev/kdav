@@ -125,13 +125,6 @@ creating ```/etc/logrotate.d/kdav``` with the following content:
 }
 ```
 
-kopano-dav also requires some php mapi classes. The easiest is to just
-symlink them:
-
-```
-ln -s /usr/share/kopano/php/mapi /var/www/kdav
-```
-
 ## Access
 
 As first step, point your webbrowser to:
