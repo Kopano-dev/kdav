@@ -201,7 +201,7 @@ Calendar & Reminder setup:
 
 Contact setup:
 - ![0_1525700327110_CardDAV1.PNG](doc/1525700308502-carddav1.png)
-- ![1_1525700327111_CardDAV2.PNG](doc/700308526-carddav2.png)
+- ![1_1525700327111_CardDAV2.PNG](doc/1525700308526-carddav2.png)
 - ![2_1525700327111_CardDAV3.PNG](doc/1525700308550-carddav3.png)
 
 Q: That seems really hard to setup at clients. Isn't there any easier way?
