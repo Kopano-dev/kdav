@@ -194,15 +194,15 @@ A: From the `Internet Account` setting screen you have to choose `Add Other Acco
 
 A picture is sometimes more worth than a thousand words:
 Calendar & Reminder setup:
-![0_1525700254010_CalDAV1.PNG](doc/1525700235852-caldav1.png)
-![1_1525700254010_CalDAV2.PNG](doc/1525700235779-caldav2.png)
-![2_1525700254011_CalDAV3.PNG](doc/1525700235820-caldav3.png)
-![3_1525700254011_CalDAV4.PNG](doc/1525700235824-caldav4.png)
+- ![0_1525700254010_CalDAV1.PNG](doc/1525700235852-caldav1.png)
+- ![1_1525700254010_CalDAV2.PNG](doc/1525700235779-caldav2.png)
+- ![2_1525700254011_CalDAV3.PNG](doc/1525700235820-caldav3.png)
+- ![3_1525700254011_CalDAV4.PNG](doc/1525700235824-caldav4.png)
 
 Contact setup:
-![0_1525700327110_CardDAV1.PNG](doc/1525700308502-carddav1.png)
-![1_1525700327111_CardDAV2.PNG](doc/700308526-carddav2.png)
-![2_1525700327111_CardDAV3.PNG](doc/1525700308550-carddav3.png)
+- ![0_1525700327110_CardDAV1.PNG](doc/1525700308502-carddav1.png)
+- ![1_1525700327111_CardDAV2.PNG](doc/700308526-carddav2.png)
+- ![2_1525700327111_CardDAV3.PNG](doc/1525700308550-carddav3.png)
 
 Q: That seems really hard to setup at clients. Isn't there any easier way?
 A: Yes, there is. You could setup kDAV for service discovery. Visit http://sabre.io/dav/service-discovery/ for more information.
