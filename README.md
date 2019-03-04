@@ -67,10 +67,6 @@ This is the simplest way to setup, running with Apache at port 443:
     # This is also to prevent high memory usage
     php_flag always_populate_raw_post_data off
 
-    # This is almost a given, but magic quotes is *still* on on some
-    # linux distributions
-    php_flag magic_quotes_gpc off
-
     # SabreDAV is not compatible with mbstring function overloading
     php_flag mbstring.func_overload off
 
