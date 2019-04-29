@@ -433,6 +433,10 @@ class KopanoDavBackend {
         if (!$entryid) {
             $this->logger->trace("Try APPTTSREF %s", $id);
             $properties = $this->GetCustomProperties($calendarId);
+            if (strpos($id, '%40') !== false) {
+                $this->logger->debug("The id contains '%40'. Use urldecode.");
+                $id = urldecode($id);
+            }
             $restriction = array(RES_PROPERTY,
                                  array(RELOP => RELOP_EQ,
                                        ULPROPTAG => $properties["appttsref"],
