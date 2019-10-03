@@ -200,8 +200,21 @@ Contact setup:
 - ![1_1525700327111_CardDAV2.PNG](doc/1525700308526-carddav2.png)
 - ![2_1525700327111_CardDAV3.PNG](doc/1525700308550-carddav3.png)
 
+If you have configured kDAV in a subdir, e.g. `domain.tld/kdav`, the configuration is slightly different:
+- ![4_20191003155143_CardDAV4.PNG](doc/20191003155143-carddav4.png)
+
+Make sure that the last part of the `Server Path` is equal to the `User Name`.
+
 Q: That seems really hard to setup at clients. Isn't there any easier way?
 A: Yes, there is. You could setup kDAV for service discovery. Visit http://sabre.io/dav/service-discovery/ for more information.
+
+Q: The initial sync has worked, but new contacts or changes to existing contacts aren't synced.
+A: Per default Contacts sync once per hour. It is possible however in Contacts' preferences to configure a different fetch period.
+
+- ![5_20191003163719_CardDAV5.PNG](doc/20191003163719-carddav5.png)
+
+- ![6_20191003163824_CardDAV6.PNG](doc/20191003163824-carddav6.png)
+
 ## Known Issues
 
 - there were reports about syncing on Apple devices taking a very long
