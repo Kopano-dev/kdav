@@ -93,9 +93,18 @@ for the webserver process (e.g. `www-data` on Debian).
 ### log4php configuration
 
 kDAV uses Apache's log4php for logging. The configuration file is
-`log4php.xml` located in the root folder. The default log location is
-`/var/log/kdav/kdav.log`. It is required to create the log directory
-first:
+`log4php.xml` located in the root folder. The default log level is
+`WARN`. Change the value in line 15 if a higher or lower log level is
+required, e.g.:
+
+```
+        <level value="TRACE" />
+```
+
+will log all incoming/outgoing requests and ical/vcard data.
+
+The default log location is `/var/log/kdav/kdav.log`. It is required to
+create the log directory first:
 
 ```
 mkdir -p /var/log/kdav
