@@ -138,14 +138,14 @@ class KopanoDavBackend {
         // TODO also filter hidden folders
         $restrictions = array();
         foreach ($classes as $class) {
-		    $restrictions[] = array(RES_PROPERTY, array(RELOP => RELOP_EQ, ULPROPTAG => PR_CONTAINER_CLASS, VALUE => $class));
+            $restrictions[] = array(RES_PROPERTY, array(RELOP => RELOP_EQ, ULPROPTAG => PR_CONTAINER_CLASS, VALUE => $class));
         }
         mapi_table_restrict($hierarchy, array(RES_OR, $restrictions));
 
         // TODO how to handle hierarchies?
         $rows = mapi_table_queryallrows($hierarchy, array(PR_DISPLAY_NAME, PR_ENTRYID, PR_SOURCE_KEY, PR_PARENT_SOURCE_KEY, PR_FOLDER_TYPE, PR_LOCAL_COMMIT_TIME_MAX));
 
-        $rootprops = mapi_getprops($rootfolder, array(PR_IPM_CONTACT_ENTRYID));
+        $rootprops = mapi_getprops($rootfolder, array(PR_IPM_CONTACT_ENTRYID, PR_IPM_APPOINTMENT_ENTRYID));
         foreach ($rows as $row) {
             if ($row[PR_FOLDER_TYPE] == FOLDER_SEARCH) {
                 continue;
@@ -164,6 +164,11 @@ class KopanoDavBackend {
             // i.e. Apple Addressbook only supports one contact folder,
             // therefore it is desired that folder is the default one.
             if (in_array("IPF.Contact", $classes) && isset($rootprops[PR_IPM_CONTACT_ENTRYID]) && $row[PR_ENTRYID] == $rootprops[PR_IPM_CONTACT_ENTRYID]) {
+                array_unshift($folders, $folder);
+            }
+            // ensure default calendar folder is put first,
+            // before the tasks folder.
+            elseif (in_array('IPF.Appointment', $classes) && isset($rootprops[PR_IPM_APPOINTMENT_ENTRYID]) && $row[PR_ENTRYID] == $rootprops[PR_IPM_APPOINTMENT_ENTRYID]) {
                 array_unshift($folders, $folder);
             }
             else {
@@ -212,13 +217,16 @@ class KopanoDavBackend {
             mapi_table_restrict($table, $restriction);
         }
 
-        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, PR_MESSAGE_SIZE, $properties['appttsref']));
+        $rows = mapi_table_queryallrows($table, array(PR_SOURCE_KEY, PR_LAST_MODIFICATION_TIME, PR_MESSAGE_SIZE, $properties['appttsrefb'], $properties['appttsrefs']));
 
         $results = [];
         foreach($rows as $row) {
             $realId = "";
-            if (isset($row[$properties['appttsref']])) {
-                $realId = $row[$properties['appttsref']];
+            if (isset($row[$properties['appttsrefb']])) {
+                $realId = $row[$properties['appttsrefb']];
+            }
+            elseif (isset($row[$properties['appttsrefs']])) {
+                $realId = $row[$properties['appttsrefs']];
             }
             else {
                 $realId = bin2hex($row[PR_SOURCE_KEY]);
@@ -255,7 +263,7 @@ class KopanoDavBackend {
         $mapimessage = mapi_folder_createmessage($folder);
         // we save the objectId in PROP_APPTTSREF so we find it by this id
         $properties = $this->GetCustomProperties($folderId);
-        mapi_setprops($mapimessage, array($properties['appttsref'] => $objectId));
+        mapi_setprops($mapimessage, array($properties['appttsrefb'] => $objectId));
         return $mapimessage;
     }
 
@@ -385,10 +393,14 @@ class KopanoDavBackend {
         // It's one of these, order:
         // - PROP_APPTTSREF (if set)
         // - PR_SOURCE_KEY
-        $props = mapi_getprops($mapimessage, array($properties['appttsref'], PR_SOURCE_KEY));
-        if (isset($props[$properties['appttsref']])) {
-            $this->logger->debug("Found PROP_APPTTSREF: %s", $props[$properties['appttsref']]);
-            return $props[$properties['appttsref']];
+        $props = mapi_getprops($mapimessage, array($properties['appttsrefb'], $properties['appttsrefs'], PR_SOURCE_KEY));
+        if (isset($props[$properties['appttsrefb']])) {
+            $this->logger->debug("Found binary PROP_APPTTSREF: %s", $props[$properties['appttsrefb']]);
+            return $props[$properties['appttsrefb']];
+        }
+        if (isset($props[$properties['appttsrefs']])) {
+            $this->logger->debug("Found string PROP_APPTTSREF: %s", $props[$properties['appttsrefs']]);
+            return $props[$properties['appttsrefs']];
         }
         // PR_SOURCE_KEY is always available
         $id = bin2hex($props[PR_SOURCE_KEY]);
@@ -437,20 +449,18 @@ class KopanoDavBackend {
                 $this->logger->debug("The id contains '%40'. Use urldecode.");
                 $id = urldecode($id);
             }
-            $restriction = array(RES_PROPERTY,
-                                 array(RELOP => RELOP_EQ,
-                                       ULPROPTAG => $properties["appttsref"],
-                                       VALUE => $id
-                                     )
-                );
+            $restriction = array();
+            $restriction[] = array(RES_PROPERTY, array(RELOP => RELOP_EQ, ULPROPTAG => $properties["appttsrefb"], VALUE => $id));
+            $restriction[] = array(RES_PROPERTY, array(RELOP => RELOP_EQ, ULPROPTAG => $properties["appttsrefs"], VALUE => $id));
         }
 
         // find the message if we have a restriction
         if ($restriction) {
             $table = mapi_folder_getcontentstable($mapifolder, MAPI_DEFERRED_ERRORS);
+            mapi_table_restrict($table, array(RES_OR, $restriction));
             // Get requested properties, plus whatever we need
             $proplist = array(PR_ENTRYID);
-            $rows = mapi_table_queryallrows($table, $proplist, $restriction);
+            $rows = mapi_table_queryallrows($table, $proplist);
             if (count($rows) > 1) {
                 $this->logger->warn("Found %d entries for id '%s' searching for message", count($rows), $id);
             }
@@ -524,7 +534,7 @@ class KopanoDavBackend {
         if (!isset($this->customprops[$id])) {
             $this->logger->trace("Fetching properties id:%s", $id);
             $store = $this->GetStoreById($id);
-            $properties = getPropIdsFromStrings($store, ["appttsref" => MapiProps::PROP_APPTTSREF]);
+            $properties = getPropIdsFromStrings($store, ["appttsrefb" => MapiProps::PROP_APPTTSREFB, "appttsrefs" => MapiProps::PROP_APPTTSREFS]);
             $this->customprops[$id] = $properties;
         }
         return $this->customprops[$id];
