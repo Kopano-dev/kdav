@@ -437,7 +437,7 @@ class KopanoDavBackend {
         $entryid = false;
         $restriction = false;
 
-        if (ctype_xdigit($id)) {
+        if (ctype_xdigit($id) && strlen($id) % 2 == 0) {
             $this->logger->trace("Try PR_SOURCE_KEY %s", $id);
             $arr = explode(':', $calendarId);
             $entryid = mapi_msgstore_entryidfromsourcekey($this->GetStoreById($arr[0]), hex2bin($arr[1]), hex2bin($id));
