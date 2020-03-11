@@ -1,0 +1,7 @@
+/var/log/kdav/*.log {
+	size 1k
+	create 664 apache root
+	compress
+	rotate 4
+	su apache root
+}
