@@ -54,7 +54,7 @@ define('MAPI_SERVER', 'default:');
 define('SABRE_AUTH_REALM', 'Kopano DAV');
 
 // Location of the SabreDAV server.
-define('DAV_ROOT_URI', '/');
+define('DAV_ROOT_URI', '/kdav/');
 
 // Location of the sync database (PDO syntax)
 define('SYNC_DB', 'sqlite:/var/lib/kopano/kdav/syncstate.db');
