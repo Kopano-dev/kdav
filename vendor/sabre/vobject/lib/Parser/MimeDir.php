@@ -64,6 +64,8 @@ class MimeDir extends Parser
         'Windows-1252',
     ];
 
+    protected $stderr;
+
     /**
      * Parses an iCalendar or vCard file.
      *
@@ -165,9 +167,40 @@ class MimeDir extends Parser
 
         $this->root = new $class([], false);
 
+        if (!$this->stderr) {
+            $this->stderr = fopen('php://stderr', 'w');
+        }
+
+        $card = "";
+        $startnote = false;
+        $pattern = "/^[A-Z;=]+:/";
         while (true) {
             // Reading until we hit END:
             $line = $this->readLine();
+//            fwrite($this->stderr, "line = $line \n");
+            $card = $card . $line . "\n";
+            if ('NOTE:' === strtoupper(substr($line, 0, 5))) {
+//                fwrite($this->stderr, "is note \n");
+                $startnote = true;
+                $note = $line;
+                continue;
+            }
+            if ($startnote) {
+//              fwrite($this->stderr, "is startnote \n");
+              if (preg_match($pattern, $line)) {
+//                  fwrite($this->stderr, "is new property line after note \n");
+//                  fwrite($this->stderr, "note = " . $note . "\n");
+                  $result = $this->parseLine($note);
+                  if ($result) {
+                      $this->root->add($result);
+                 }
+              } else {
+//                  fwrite($this->stderr, "is just line after note \n");
+//                  $note = $note . "=0D=0A" . $line;
+                  $note = $note . '\n' . $line;
+                  continue;
+              }
+            }
             if ('END:' === strtoupper(substr($line, 0, 4))) {
                 break;
             }
